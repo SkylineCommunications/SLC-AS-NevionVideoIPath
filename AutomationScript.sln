@@ -31,14 +31,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Code Analysis", "Code Analy
 		Internal\Code Analysis\qaction-release.ruleset = Internal\Code Analysis\qaction-release.ruleset
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NevionVideoIPath_SourceTags", "NevionVideoIPath_SourceTags", "{7E494BFD-5D25-405E-ACC6-8A195E38788F}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GQI_NevionVideoIPath_GetTags", "GQI_NevionVideoIPath_GetTags", "{7E494BFD-5D25-405E-ACC6-8A195E38788F}"
 	ProjectSection(SolutionItems) = preProject
-		NevionVideoIPath_SourceTags.xml = NevionVideoIPath_SourceTags.xml
+		GQI_NevionVideoIPath_GetTags.xml = GQI_NevionVideoIPath_GetTags.xml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Actions", "Actions", "{E5EC0779-8FF3-48EF-B192-09D45DA770E3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NevionVideoIPath_SourceTags_1", "NevionVideoIPath_SourceTags_1\NevionVideoIPath_SourceTags_1.csproj", "{65C4C806-395E-44C3-BADB-33A2575CACAF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GQI_NevionVideoIPath_GetTags", "GQI_NevionVideoIPath_GetTags\GQI_NevionVideoIPath_GetTags.csproj", "{65C4C806-395E-44C3-BADB-33A2575CACAF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

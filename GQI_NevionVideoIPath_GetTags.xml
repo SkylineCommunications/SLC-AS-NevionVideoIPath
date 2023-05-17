@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <DMSScript options="272" xmlns="http://www.skyline.be/automation">
-	<Name>NevionVideoIPath_SourceTags</Name>
+	<Name>GQI_NevionVideoIPath_GetTags</Name>
 	<Description></Description>
 	<Type>Automation</Type>
 	<Author>SKYLINE2\Joey</Author>
@@ -18,9 +18,9 @@
 
 	<Script>
 		<Exe id="1" type="csharp">
-			<Value><![CDATA[[Project:NevionVideoIPath_SourceTags_1]]]></Value>
+			<Value><![CDATA[[Project:GQI_NevionVideoIPath_GetTags]]]></Value>
 			<Param type="preCompile">true</Param>
-			<Param type="libraryName">GQI_NevionVideoIPath_SourceTags</Param>
+			<Param type="libraryName">GQI_NevionVideoIPath_GetTags</Param>
 			<Message></Message>
 		</Exe>
 	</Script>
