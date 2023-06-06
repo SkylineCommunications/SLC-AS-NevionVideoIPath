@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<DMSScript options="272" xmlns="http://www.skyline.be/automation">
+	<Name>ScheduleServices</Name>
+	<Description></Description>
+	<Type>Automation</Type>
+	<Author>SKYLINE2\GillesVH</Author>
+	<CheckSets>FALSE</CheckSets>
+	<Folder></Folder>
+
+	<Protocols>
+	</Protocols>
+
+	<Memory>
+	</Memory>
+
+	<Parameters>
+		<ScriptParameter id="2" type="string" values="">
+			<Description>SourceName</Description>
+		</ScriptParameter>
+		<ScriptParameter id="3" type="string" values="">
+			<Description>DestinationNames</Description>
+		</ScriptParameter>
+	</Parameters>
+
+	<Script>
+		<Exe id="1" type="csharp">
+			<Value><![CDATA[[Project:ScheduleServices_1]]]></Value>
+			<!--<Param type="debug">true</Param>-->
+			<Message></Message>
+		</Exe>
+	</Script>
+</DMSScript>
