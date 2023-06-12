@@ -75,20 +75,27 @@ namespace ConnectServices_1
 			try
 			{
 				string sourceDescriptorLabelInputParameter = engine.GetScriptParam("SourceName").Value;
-				if (!TryGetNamesFromInput(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
+				if (!TryGetInputValue(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
 				{
-					engine.Log("DisconnectServices|Failed to gather Source Name");
+					engine.Log("ConnectServices|Failed to gather Source Name");
 					return;
 				}
 
 				string destinationDescriptorLabelInputParameter = engine.GetScriptParam("DestinationNames").Value;
-				if (!TryGetNamesFromInput(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
+				if (!TryGetInputValue(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
 				{
-					engine.Log("DisconnectServices|Failed to gather Destination Names");
+					engine.Log("ConnectServices|Failed to gather Destination Names");
 					return;
 				}
 
-				ConnectServices(engine, sourceNames.FirstOrDefault(), destinationNames);
+				string profileInputParameter = engine.GetScriptParam("Profile").Value;
+				if (!TryGetInputValue(profileInputParameter, out List<string> profile))
+				{
+					engine.Log("ConnectServices|Failed to gather selected profile");
+					return;
+				}
+
+				ConnectServices(engine, sourceNames.FirstOrDefault(), destinationNames, profile.FirstOrDefault());
 			}
 			catch (Exception e)
 			{
@@ -96,7 +103,7 @@ namespace ConnectServices_1
 			}
 		}
 
-		private static void ConnectServices(IEngine engine, string sourceName, List<string> destinationNames)
+		private static void ConnectServices(IEngine engine, string sourceName, List<string> destinationNames, string selectedProfile)
 		{
 			try
 			{
@@ -107,10 +114,15 @@ namespace ConnectServices_1
 					return;
 				}
 
+				if (string.IsNullOrWhiteSpace(selectedProfile))
+				{
+					selectedProfile = "SIPS";
+				}
+
 				string route = destinationNames.Count > 1 ? "Point-to-Multipoint" : "Point-to-Point";
 				var concatenatedDestinationNames = string.Join(",", destinationNames);
 
-				string visioString = string.Join(";", "SIPS", string.Empty, sourceName, concatenatedDestinationNames, 0, 0, route, 1, string.Empty, string.Empty);
+				string visioString = string.Join(";", selectedProfile, string.Empty, sourceName, concatenatedDestinationNames, 0, 0, route, 1, string.Empty, string.Empty);
 				nevionVideoIPathElement.SetParameter(2309, visioString);
 			}
 			catch (Exception e)
@@ -119,7 +131,7 @@ namespace ConnectServices_1
 			}
 		}
 
-		private static bool TryGetNamesFromInput(string input, out List<string> labels)
+		private static bool TryGetInputValue(string input, out List<string> labels)
 		{
 			labels = new List<string>();
 

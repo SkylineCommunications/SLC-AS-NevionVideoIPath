@@ -73,12 +73,29 @@
 			}
 		}
 
+		/// <summary>
+		/// Gets the selected profile.
+		/// </summary>
+		public string Profile
+		{
+			get
+			{
+				return profileDropDown.Selected;
+			}
+
+			private set
+			{
+				profileDropDown.Selected = value;
+			}
+		}
+
 		public Button ConnectButton { get; private set; } = new Button("Connect");
 
-		public void SetSourceAndDestinationNames(string sourceName, List<string> destinationNames)
+		public void SetInitialValues(string sourceName, List<string> destinationNames, string selectedProfile)
 		{
 			SourceName = sourceName;
 			DestinationNames = destinationNames;
+			Profile = selectedProfile;
 		}
 
 		public void TriggerConnectOnElement()

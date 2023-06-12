@@ -20,6 +20,9 @@
 		<ScriptParameter id="3" type="string" values="">
 			<Description>DestinationNames</Description>
 		</ScriptParameter>
+		<ScriptParameter id="4" type="string" values="">
+			<Description>Profile</Description>
+		</ScriptParameter>
 	</Parameters>
 
 	<Script>

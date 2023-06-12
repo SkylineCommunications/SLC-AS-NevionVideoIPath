@@ -79,20 +79,27 @@ namespace ScheduleServices_1
 				//engine.ShowUI();
 
 				string sourceDescriptorLabelInputParameter = engine.GetScriptParam("SourceName").Value;
-				if (!TryGetNamesFromInput(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
+				if (!TryGetInputValue(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
 				{
 					engine.Log("Schedule Services|Failed to gather Source Name");
 					return;
 				}
 
 				string destinationDescriptorLabelInputParameter = engine.GetScriptParam("DestinationNames").Value;
-				if (!TryGetNamesFromInput(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
+				if (!TryGetInputValue(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
 				{
 					engine.Log("Schedule Services|Failed to gather Destination Names");
 					return;
 				}
 
-				Initialize(engine, sourceNames.FirstOrDefault(), destinationNames);
+				string profileInputParameter = engine.GetScriptParam("Profile").Value;
+				if (!TryGetInputValue(profileInputParameter, out List<string> profile))
+				{
+					engine.Log("Schedule Services|Failed to gather selected profile");
+					return;
+				}
+
+				Initialize(engine, sourceNames.FirstOrDefault(), destinationNames, profile.FirstOrDefault());
 
 				var controller = new InteractiveController(engine);
 				controller.Run(scheduleDialog);
@@ -103,14 +110,14 @@ namespace ScheduleServices_1
 			}
 		}
 
-		private static void Initialize(IEngine engine, string sourceName, List<string> destinationNames)
+		private static void Initialize(IEngine engine, string sourceName, List<string> destinationNames, string selectedProfile)
 		{
 			scheduleDialog = new ScheduleDialog(engine);
-			scheduleDialog.SetSourceAndDestinationNames(sourceName, destinationNames);
+			scheduleDialog.SetInitialValues(sourceName, destinationNames, selectedProfile);
 			scheduleDialog.ConnectButton.Pressed += (s, o) => engine.ExitSuccess("Triggered connect to nevion IPath driver to create a custom service connection");
 		}
 
-		private static bool TryGetNamesFromInput(string input, out List<string> labels)
+		private static bool TryGetInputValue(string input, out List<string> labels)
 		{
 			labels = new List<string>();
 
