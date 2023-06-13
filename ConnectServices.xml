@@ -5,7 +5,7 @@
 	<Type>Automation</Type>
 	<Author>SKYLINE2\GillesVH</Author>
 	<CheckSets>FALSE</CheckSets>
-	<Folder></Folder>
+	<Folder>Nevion VideoIPath</Folder>
 
 	<Protocols>
 	</Protocols>
@@ -19,6 +19,9 @@
 		</ScriptParameter>
 		<ScriptParameter id="3" type="string" values="">
 			<Description>DestinationNames</Description>
+		</ScriptParameter>
+		<ScriptParameter id="4" type="string" values="">
+			<Description>Profile</Description>
 		</ScriptParameter>
 	</Parameters>
 

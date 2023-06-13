@@ -53,13 +53,9 @@ namespace DisconnectServices_1
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Globalization;
 	using System.Linq;
-	using System.Text;
 	using Newtonsoft.Json;
 	using Skyline.DataMiner.Automation;
-	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
-	using Skyline.DataMiner.Core.DataMinerSystem.Common;
 
 	/// <summary>
 	/// Represents a DataMiner Automation script.
@@ -77,7 +73,7 @@ namespace DisconnectServices_1
 				string serviceRawIds = engine.GetScriptParam("ServiceIds").Value;
 				if (!TryGetIdsFromInput(serviceRawIds, out List<string> serviceIds))
 				{
-					engine.Log("DisconnectServices|Failed to gather destination ids");
+					engine.ExitFail("Invalid services!");
 					return;
 				}
 
@@ -85,29 +81,29 @@ namespace DisconnectServices_1
 			}
 			catch (Exception e)
 			{
-				engine.Log($"DisconnectServices|Run|Something went wrong while disconnecting services {e}");
+				engine.Log($"Disconnect failed: {e}");
+				engine.ExitFail("Disconnect failed due to unknown exception!");
 			}
 		}
 
 		private static void CancelCurrentServices(IEngine engine, List<string> serviceIds)
 		{
-			try
+			var nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
+			if (nevionVideoIPathElement == null)
 			{
-				var nevionVideoIPathElement = engine.FindElement("Nevion iPath (Lab)");
-				if (nevionVideoIPathElement == null || !nevionVideoIPathElement.IsActive)
-				{
-					engine.ExitSuccess("DisconnectServices|CancelCurrentServices|Failed");
-					return;
-				}
-
-				foreach (var serviceId in serviceIds)
-				{
-					nevionVideoIPathElement.SetParameterByPrimaryKey(1515, serviceId, 1);
-				}
+				engine.ExitFail("Nevion Video iPath element not found!");
+				return;
 			}
-			catch (Exception e)
+
+			if (!nevionVideoIPathElement.IsActive)
 			{
-				engine.Log($"DisconnectServices|CancelCurrentServices|Canceling current services failed due to: {e}");
+				engine.ExitFail("Nevion Video iPath element not active!");
+				return;
+			}
+
+			foreach (var serviceId in serviceIds)
+			{
+				nevionVideoIPathElement.SetParameterByPrimaryKey(1515, serviceId, 1);
 			}
 		}
 

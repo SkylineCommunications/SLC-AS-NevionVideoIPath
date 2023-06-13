@@ -53,13 +53,9 @@ namespace ConnectServices_1
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Globalization;
 	using System.Linq;
-	using System.Text;
 	using Newtonsoft.Json;
 	using Skyline.DataMiner.Automation;
-	using Skyline.DataMiner.Library.Automation;
-	using Skyline.DataMiner.Library.Common;
 
 	/// <summary>
 	/// Represents a DataMiner Automation script.
@@ -74,49 +70,88 @@ namespace ConnectServices_1
 		{
 			try
 			{
-				string sourceDescriptorLabelInputParameter = engine.GetScriptParam("SourceName").Value;
+				var sourceDescriptorLabelInputParameter = engine.GetScriptParam("SourceName").Value;
 				if (!TryGetNamesFromInput(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
 				{
-					engine.Log("DisconnectServices|Failed to gather Source Name");
+					engine.ExitFail("Invalid source!");
 					return;
 				}
 
-				string destinationDescriptorLabelInputParameter = engine.GetScriptParam("DestinationNames").Value;
+				if (sourceNames.Count != 1)
+				{
+					engine.ExitFail("Only 1 source should be selected!");
+					return;
+				}
+
+				var sourceName = sourceNames.FirstOrDefault();
+				if (String.IsNullOrEmpty(sourceName))
+				{
+					engine.ExitFail("Invalid source!");
+					return;
+				}
+
+				var destinationDescriptorLabelInputParameter = engine.GetScriptParam("DestinationNames").Value;
 				if (!TryGetNamesFromInput(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
 				{
-					engine.Log("DisconnectServices|Failed to gather Destination Names");
+					engine.ExitFail("Invalid destinations!");
 					return;
 				}
 
-				ConnectServices(engine, sourceNames.FirstOrDefault(), destinationNames);
+				if (destinationNames.Count < 1)
+				{
+					engine.ExitFail("No destinations selected!");
+					return;
+				}
+
+				var profileInputParameter = engine.GetScriptParam("Profile").Value;
+				if (!TryGetNamesFromInput(profileInputParameter, out List<string> profileNames))
+				{
+					engine.ExitFail("Invalid profile!");
+					return;
+				}
+
+				if (profileNames.Count != 1)
+				{
+					engine.ExitFail("Only 1 profile should be selected!");
+					return;
+				}
+
+				var profileName = profileNames.FirstOrDefault();
+				if (String.IsNullOrEmpty(profileName))
+				{
+					engine.ExitFail("Invalid profile!");
+					return;
+				}
+
+				ConnectServices(engine, sourceName, destinationNames, profileName);
 			}
 			catch (Exception e)
 			{
-				engine.Log($"ConnectServices Script|Run|Something went wrong while disconnecting services {e}");
+				engine.Log($"Connect failed: {e}");
+				engine.ExitFail("Connect failed due to unknown exception!");
 			}
 		}
 
-		private static void ConnectServices(IEngine engine, string sourceName, List<string> destinationNames)
+		private static void ConnectServices(IEngine engine, string sourceName, List<string> destinationNames, string profile)
 		{
-			try
+			var nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
+			if (nevionVideoIPathElement == null)
 			{
-				var nevionVideoIPathElement = engine.FindElement("Nevion iPath (Lab)");
-				if (nevionVideoIPathElement == null || !nevionVideoIPathElement.IsActive || string.IsNullOrWhiteSpace(sourceName) || !destinationNames.Any())
-				{
-					engine.ExitSuccess("ConnectServices Script|ConnectServices|Not Allowed");
-					return;
-				}
-
-				string route = destinationNames.Count > 1 ? "Point-to-Multipoint" : "Point-to-Point";
-				var concatenatedDestinationNames = string.Join(",", destinationNames);
-
-				string visioString = string.Join(";", "SIPS", string.Empty, sourceName, concatenatedDestinationNames, 0, 0, route, 1, string.Empty, string.Empty);
-				nevionVideoIPathElement.SetParameter(2309, visioString);
+				engine.ExitFail("Nevion Video iPath element not found!");
+				return;
 			}
-			catch (Exception e)
+
+			if (!nevionVideoIPathElement.IsActive)
 			{
-				engine.Log($"ConnectServices Script|ConnectServices|Connecting current services failed due to: {e}");
+				engine.ExitFail("Nevion Video iPath element not active!");
+				return;
 			}
+
+			var route = destinationNames.Count > 1 ? "Point-to-Multipoint" : "Point-to-Point";
+			var concatenatedDestinationNames = string.Join(",", destinationNames);
+
+			var visioString = string.Join(";", profile, string.Empty, sourceName, concatenatedDestinationNames, 0, 0, route, 1, string.Empty, string.Empty);
+			nevionVideoIPathElement.SetParameter(2309, visioString);
 		}
 
 		private static bool TryGetNamesFromInput(string input, out List<string> labels)

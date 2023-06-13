@@ -56,8 +56,8 @@
     <PackageReference Include="Skyline.DataMiner.Dev.Automation">
       <Version>10.3.6</Version>
     </PackageReference>
-    <PackageReference Include="Skyline.DataMiner.IASToolkit">
-      <Version>1.0.9.1-1.0.9.X.20</Version>
+    <PackageReference Include="Skyline.DataMiner.Utils.InteractiveAutomationScriptToolkit">
+      <Version>6.1.0</Version>
     </PackageReference>
     <PackageReference Include="StyleCop.Analyzers">
       <Version>1.1.118</Version>

@@ -5,7 +5,7 @@
 	using System.Globalization;
 	using System.Linq;
 	using Skyline.DataMiner.Automation;
-	using Skyline.DataMiner.DeveloperCommunityLibrary.InteractiveAutomationToolkit;
+	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
 	public class ScheduleDialog : Dialog
 	{
@@ -13,9 +13,9 @@
 		private readonly Label sourceNameValue = new Label();
 		private readonly Label destinationNamesLabel = new Label("Destination(s)");
 		private readonly Label destinationNameValues = new Label();
-
 		private readonly Label profileLabel = new Label("Profiles");
 		private readonly DropDown profileDropDown = new DropDown();
+
 		private readonly Label serviceNameLabel = new Label("Service Name");
 		private readonly TextBox serviceNameTextBox = new TextBox();
 		private readonly Label descriptionLabel = new Label("Description");
@@ -36,7 +36,20 @@
 		{
 			Title = "Schedule Services";
 
-			nevionVideoIPathElement = Engine.FindElement("Nevion iPath (Lab)");
+			nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
+			if (nevionVideoIPathElement == null)
+			{
+				engine.ExitFail("Nevion Video iPath element not found!");
+				return;
+			}
+
+			if (!nevionVideoIPathElement.IsActive)
+			{
+				engine.ExitFail("Nevion Video iPath element not active!");
+				return;
+			}
+
+
 			ConnectButton.Pressed += (s, o) => TriggerConnectOnElement();
 
 			InitializeProfiles();
@@ -73,35 +86,36 @@
 			}
 		}
 
+		public string ProfileName
+		{
+			get
+			{
+				return profileDropDown.Selected;
+			}
+
+			private set
+			{
+				profileDropDown.Selected = value;
+			}
+		}
+
 		public Button ConnectButton { get; private set; } = new Button("Connect");
 
-		public void SetSourceAndDestinationNames(string sourceName, List<string> destinationNames)
+		public void SetInput(string sourceName, List<string> destinationNames, string profile)
 		{
 			SourceName = sourceName;
 			DestinationNames = destinationNames;
+			ProfileName = profile;
 		}
 
 		public void TriggerConnectOnElement()
 		{
-			try
-			{
-				if (nevionVideoIPathElement == null || !nevionVideoIPathElement.IsActive || string.IsNullOrWhiteSpace(SourceName) || !DestinationNames.Any())
-				{
-					Engine.ExitSuccess("ScheduleDialog|TriggerConnectOnElement|Not Allowed");
-					return;
-				}
+			string route = DestinationNames.Count > 1 ? "Point-to-Multipoint" : "Point-to-Point";
 
-				string route = DestinationNames.Count > 1 ? "Point-to-Multipoint" : "Point-to-Point";
+			var concatenatedDestnationNames = string.Join(",", DestinationNames);
+			string visioString = string.Join(";", profileDropDown.Selected, serviceNameTextBox.Text, SourceName, concatenatedDestnationNames, Convert.ToString(startTime.DateTime.ToOADate(), CultureInfo.InvariantCulture), Convert.ToString(endTime.DateTime.ToOADate(), CultureInfo.InvariantCulture), route, 0, descriptionTextBox.Text, tagTextBox.Text);
 
-				var concatenatedDestnationNames = string.Join(",", DestinationNames);
-				string visioString = string.Join(";", profileDropDown.Selected, serviceNameTextBox.Text, SourceName, concatenatedDestnationNames, Convert.ToString(startTime.DateTime.ToOADate(), CultureInfo.InvariantCulture), Convert.ToString(endTime.DateTime.ToOADate(), CultureInfo.InvariantCulture), route, 0, descriptionTextBox.Text, tagTextBox.Text);
-
-				nevionVideoIPathElement.SetParameter(2309, visioString);
-			}
-			catch (Exception e)
-			{
-				Engine.Log($"ScheduleServices|TriggerConnectOnElement|Connecting current services failed due to: {e}");
-			}
+			nevionVideoIPathElement.SetParameter(2309, visioString);
 		}
 
 		private void GenerateUI()

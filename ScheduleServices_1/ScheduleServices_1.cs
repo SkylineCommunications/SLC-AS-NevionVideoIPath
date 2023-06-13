@@ -53,12 +53,10 @@ namespace ScheduleServices_1
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Globalization;
 	using System.Linq;
-	using System.Text;
 	using Newtonsoft.Json;
 	using Skyline.DataMiner.Automation;
-	using Skyline.DataMiner.DeveloperCommunityLibrary.InteractiveAutomationToolkit;
+	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
 	/// <summary>
 	/// Represents a DataMiner Automation script.
@@ -78,36 +76,76 @@ namespace ScheduleServices_1
 			{
 				//engine.ShowUI();
 
-				string sourceDescriptorLabelInputParameter = engine.GetScriptParam("SourceName").Value;
+				var sourceDescriptorLabelInputParameter = engine.GetScriptParam("SourceName").Value;
 				if (!TryGetNamesFromInput(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
 				{
-					engine.Log("Schedule Services|Failed to gather Source Name");
+					engine.ExitFail("Invalid source!");
 					return;
 				}
 
-				string destinationDescriptorLabelInputParameter = engine.GetScriptParam("DestinationNames").Value;
+				if (sourceNames.Count != 1)
+				{
+					engine.ExitFail("Only 1 source should be selected!");
+					return;
+				}
+
+				var sourceName = sourceNames.FirstOrDefault();
+				if (String.IsNullOrEmpty(sourceName))
+				{
+					engine.ExitFail("Invalid source!");
+					return;
+				}
+
+				var destinationDescriptorLabelInputParameter = engine.GetScriptParam("DestinationNames").Value;
 				if (!TryGetNamesFromInput(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
 				{
-					engine.Log("Schedule Services|Failed to gather Destination Names");
+					engine.ExitFail("Invalid destinations!");
 					return;
 				}
 
-				Initialize(engine, sourceNames.FirstOrDefault(), destinationNames);
+				if (destinationNames.Count < 1)
+				{
+					engine.ExitFail("No destinations selected!");
+					return;
+				}
+
+				var profileInputParameter = engine.GetScriptParam("Profile").Value;
+				if (!TryGetNamesFromInput(profileInputParameter, out List<string> profileNames))
+				{
+					engine.ExitFail("Invalid profile!");
+					return;
+				}
+
+				if (profileNames.Count != 1)
+				{
+					engine.ExitFail("Only 1 profile should be selected!");
+					return;
+				}
+
+				var profileName = profileNames.FirstOrDefault();
+				if (String.IsNullOrEmpty(profileName))
+				{
+					engine.ExitFail("Invalid profile!");
+					return;
+				}
+
+				Initialize(engine, sourceName, destinationNames, profileName);
 
 				var controller = new InteractiveController(engine);
 				controller.Run(scheduleDialog);
 			}
 			catch (Exception e)
 			{
-				engine.Log($"Schedule Services|Run|Something went wrong while disconnecting services {e}");
+				engine.Log($"Schedule failed: {e}");
+				engine.ExitFail("Schedule failed due to unknown exception!");
 			}
 		}
 
-		private static void Initialize(IEngine engine, string sourceName, List<string> destinationNames)
+		private static void Initialize(IEngine engine, string sourceName, List<string> destinationNames, string profile)
 		{
 			scheduleDialog = new ScheduleDialog(engine);
-			scheduleDialog.SetSourceAndDestinationNames(sourceName, destinationNames);
-			scheduleDialog.ConnectButton.Pressed += (s, o) => engine.ExitSuccess("Triggered connect to nevion IPath driver to create a custom service connection");
+			scheduleDialog.SetInput(sourceName, destinationNames, profile);
+			scheduleDialog.ConnectButton.Pressed += (s, o) => engine.ExitSuccess("");
 		}
 
 		private static bool TryGetNamesFromInput(string input, out List<string> labels)
