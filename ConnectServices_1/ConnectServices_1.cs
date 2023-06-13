@@ -71,7 +71,7 @@ namespace ConnectServices_1
 			try
 			{
 				var sourceDescriptorLabelInputParameter = engine.GetScriptParam("SourceName").Value;
-				if (!TryGetNamesFromInput(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
+				if (!TryGetInputValue(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
 				{
 					engine.ExitFail("Invalid source!");
 					return;
@@ -91,7 +91,7 @@ namespace ConnectServices_1
 				}
 
 				var destinationDescriptorLabelInputParameter = engine.GetScriptParam("DestinationNames").Value;
-				if (!TryGetNamesFromInput(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
+				if (!TryGetInputValue(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
 				{
 					engine.ExitFail("Invalid destinations!");
 					return;
@@ -104,7 +104,7 @@ namespace ConnectServices_1
 				}
 
 				var profileInputParameter = engine.GetScriptParam("Profile").Value;
-				if (!TryGetNamesFromInput(profileInputParameter, out List<string> profileNames))
+				if (!TryGetInputValue(profileInputParameter, out List<string> profileNames))
 				{
 					engine.ExitFail("Invalid profile!");
 					return;
@@ -116,7 +116,14 @@ namespace ConnectServices_1
 					return;
 				}
 
-				ConnectServices(engine, sourceNames.FirstOrDefault(), destinationNames, profile.FirstOrDefault());
+				var profileName = profileNames.FirstOrDefault();
+				if (String.IsNullOrEmpty(profileName))
+				{
+					engine.ExitFail("Invalid profile!");
+					return;
+				}
+
+				ConnectServices(engine, sourceName, destinationNames, profileName);
 			}
 			catch (Exception e)
 			{

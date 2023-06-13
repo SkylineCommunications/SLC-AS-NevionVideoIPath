@@ -77,7 +77,7 @@ namespace ScheduleServices_1
 				//engine.ShowUI();
 
 				var sourceDescriptorLabelInputParameter = engine.GetScriptParam("SourceName").Value;
-				if (!TryGetNamesFromInput(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
+				if (!TryGetInputValue(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
 				{
 					engine.ExitFail("Invalid source!");
 					return;
@@ -97,7 +97,7 @@ namespace ScheduleServices_1
 				}
 
 				var destinationDescriptorLabelInputParameter = engine.GetScriptParam("DestinationNames").Value;
-				if (!TryGetNamesFromInput(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
+				if (!TryGetInputValue(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
 				{
 					engine.ExitFail("Invalid destinations!");
 					return;
@@ -110,7 +110,7 @@ namespace ScheduleServices_1
 				}
 
 				var profileInputParameter = engine.GetScriptParam("Profile").Value;
-				if (!TryGetNamesFromInput(profileInputParameter, out List<string> profileNames))
+				if (!TryGetInputValue(profileInputParameter, out List<string> profileNames))
 				{
 					engine.ExitFail("Invalid profile!");
 					return;
@@ -131,8 +131,6 @@ namespace ScheduleServices_1
 
 				Initialize(engine, sourceName, destinationNames, profileName);
 
-				Initialize(engine, sourceNames.FirstOrDefault(), destinationNames, profile.FirstOrDefault());
-
 				var controller = new InteractiveController(engine);
 				controller.Run(scheduleDialog);
 			}
@@ -151,7 +149,7 @@ namespace ScheduleServices_1
 		{
 			scheduleDialog = new ScheduleDialog(engine);
 			scheduleDialog.SetInput(sourceName, destinationNames, profile);
-			scheduleDialog.ConnectButton.Pressed += (s, o) => engine.ExitSuccess("");
+			scheduleDialog.ConnectButton.Pressed += (s, o) => engine.ExitSuccess(String.Empty);
 		}
 
 		private static bool TryGetInputValue(string input, out List<string> labels)
