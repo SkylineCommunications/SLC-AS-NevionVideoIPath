@@ -54,7 +54,7 @@
       <Version>13.0.3</Version>
     </PackageReference>
     <PackageReference Include="Skyline.DataMiner.Dev.Automation">
-      <Version>10.1.0.6</Version>
+      <Version>10.3.6</Version>
     </PackageReference>
     <PackageReference Include="Skyline.DataMiner.IASToolkit">
       <Version>1.0.9.1-1.0.9.X.20</Version>
@@ -68,7 +68,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties DisLinkId="1" DisProjectType="automationScriptProject" DisLinkedXmlFile="..\ScheduleServices.xml" />
+      <UserProperties DisLinkedXmlFile="..\ScheduleServices.xml" DisProjectType="automationScriptProject" DisLinkId="1" />
     </VisualStudio>
   </ProjectExtensions>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

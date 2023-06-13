@@ -3,57 +3,62 @@ using System.Collections.Generic;
 using System.Linq;
 using Skyline.DataMiner.Analytics.GenericInterface;
 using Skyline.DataMiner.Net.Messages;
+using SLDataGateway.API.Types.Results.Paging;
 
-[GQIMetaData(Name = "Nevion VideoIPath Get Tags")]
-public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInputArguments
+[GQIMetaData(Name = "Nevion VideoIPath Get Destinations")]
+public class GQI_NevionVideoIPath_GetDestinations : IGQIDataSource, IGQIOnInit, IGQIInputArguments
 {
 	private GQIDMS dms;
-
-	private GQIIntArgument typeArgument = new GQIIntArgument("Type") { IsRequired = true };
-	private Type type;
 
 	private GQIStringArgument profileArgument = new GQIStringArgument("Profile") { IsRequired = false };
 	private string profile;
 
+	private GQIStringArgument tagArgument = new GQIStringArgument("Tags") { IsRequired = false };
+	private string tag;
+
 	private int dataminerId;
 	private int elementId;
-
-	private enum Type
-	{
-		Source = 0,
-		Destination = 1,
-	}
 
 	public GQIColumn[] GetColumns()
 	{
 		return new GQIColumn[]
 		{
-			new GQIStringColumn("Tag"),
+			new GQIStringColumn("Name"),
+			new GQIStringColumn("ID"),
+			new GQIStringColumn("Description"),
+			new GQIStringColumn("Tags"),
+			new GQIStringColumn("Descriptor Label"),
+			new GQIStringColumn("F Descriptor Label"),
 		};
 	}
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new GQIArgument[] { typeArgument, profileArgument };
+		return new GQIArgument[] { profileArgument, tagArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
-		type = (Type)args.GetArgumentValue(typeArgument);
-		profile = Convert.ToString(args.GetArgumentValue(profileArgument));
+		profile = args.GetArgumentValue<string>(profileArgument);
+		tag = args.GetArgumentValue<string>(tagArgument);
 		return new OnArgumentsProcessedOutputArgs();
 	}
 
 	public GQIPage GetNextPage(GetNextPageInputArgs args)
 	{
-		var profileTagsFilter = GetTagsForProfile();
-		var tags = GetTags(profileTagsFilter);
-
-		var rows = new List<GQIRow>();
-		foreach (var tag in tags.OrderBy(t => t))
+		List<GQIRow> rows;
+		if (!String.IsNullOrEmpty(tag))
 		{
-			var row = new GQIRow(new GQICell[] { new GQICell() { Value = tag } });
-			rows.Add(row);
+			rows = GetDestinationRows(tag);
+		}
+		else if (!String.IsNullOrEmpty(profile))
+		{
+			var tagFilter = GetTagsForProfile();
+			rows = GetDestinationRows(tagFilter.ToArray());
+		}
+		else
+		{
+			rows = GetDestinationRows();
 		}
 
 		return new GQIPage(rows.ToArray())
@@ -154,58 +159,85 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 		return profileTags;
 	}
 
-	private HashSet<string> GetTags(HashSet<string> profileTagsFilter)
+	private List<GQIRow> GetDestinationRows(params string[] tagFilter)
 	{
-		var tags = new HashSet<string>();
+		var rows = new List<GQIRow>();
 
 		if (dataminerId == -1 || elementId == -1)
 		{
-			return tags;
+			return rows;
 		}
 
-		var tableId = type == Type.Source ? 1300 : 1400;
+		var tableId = 1400;
 		var getPartialTableMessage = new GetPartialTableMessage(dataminerId, elementId, tableId, new[] { "forceFullTable=true" });
 		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
 		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
 		{
-			return tags;
+			return rows;
 		}
 
 		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
-		if (columns.Length < 4)
+		if (columns.Length < 6)
 		{
-			return tags;
+			return rows;
 		}
 
-		foreach (var tagsCell in columns[3].ArrayValue)
+		for (int i = 0; i < columns[0].ArrayValue.Length; i++)
 		{
-			if (tagsCell.IsEmpty)
+			var nameCell = columns[0].ArrayValue[i];
+			if (nameCell.IsEmpty)
 			{
 				continue;
 			}
 
-			if (String.IsNullOrEmpty(tagsCell.CellValue.StringValue))
+			var name = nameCell.CellValue.StringValue;
+
+			var idCell = columns[1].ArrayValue[i];
+			if (idCell.IsEmpty)
 			{
 				continue;
 			}
 
-			var valueTags = tagsCell.CellValue.StringValue.Split(',');
-			foreach (var valueTag in valueTags)
+			var id = idCell.CellValue.StringValue;
+
+			var tagsCell = columns[3].ArrayValue[i];
+			var tagsInCell = !tagsCell.IsEmpty ? tagsCell.CellValue.StringValue : String.Empty;
+
+			if (tagFilter != null && tagFilter.Any())
 			{
-				if (String.IsNullOrEmpty(valueTag))
+				var tagsForSource = tagsInCell.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim());
+				if (!tagsForSource.Intersect(tagFilter).Any())
 				{
 					continue;
 				}
-
-				tags.Add(valueTag.Trim());
 			}
+
+			var descriptionCell = columns[2].ArrayValue[i];
+			var description = !descriptionCell.IsEmpty ? descriptionCell.CellValue.StringValue : String.Empty;
+
+			var descriptorLabelCell = columns[4].ArrayValue[i];
+			var descriptorLabel = !descriptorLabelCell.IsEmpty ? descriptorLabelCell.CellValue.StringValue : String.Empty;
+			if (String.IsNullOrEmpty(descriptorLabel))
+			{
+				continue;
+			}
+
+			var fDescriptorLabelCell = columns[5].ArrayValue[i];
+			var fDescriptorLabel = !fDescriptorLabelCell.IsEmpty ? fDescriptorLabelCell.CellValue.StringValue : String.Empty;
+
+			var row = new GQIRow(
+				new GQICell[]
+				{
+					new GQICell() { Value = name },
+					new GQICell() { Value = id },
+					new GQICell() { Value = description },
+					new GQICell() { Value = tagsInCell },
+					new GQICell() { Value = descriptorLabel },
+					new GQICell() { Value = fDescriptorLabel },
+				});
+			rows.Add(row);
 		}
 
-		if (profileTagsFilter != null && profileTagsFilter.Any())
-		{
-			tags.IntersectWith(profileTagsFilter);
-		}
-
-		return tags;
+		return rows;
 	}
 }

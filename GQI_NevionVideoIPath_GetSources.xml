@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<DMSScript options="272" xmlns="http://www.skyline.be/automation">
+	<Name>GQI_NevionVideoIPath_GetSources</Name>
+	<Description></Description>
+	<Type>Automation</Type>
+	<Author>SKYLINE2\Joey</Author>
+	<CheckSets>FALSE</CheckSets>
+	<Folder>GQI</Folder>
+
+	<Protocols>
+	</Protocols>
+
+	<Memory>
+	</Memory>
+
+	<Parameters>
+	</Parameters>
+
+	<Script>
+		<Exe id="1" type="csharp">
+			<Value><![CDATA[[Project:GQI_NevionVideoIPath_GetSources_1]]]></Value>
+			<Param type="preCompile">true</Param>
+			<Param type="libraryName">GQI_NevionVideoIPath_GetSources</Param>
+			<Message></Message>
+		</Exe>
+	</Script>
+</DMSScript>
