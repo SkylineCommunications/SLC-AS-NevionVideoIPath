@@ -15,7 +15,7 @@
 
 	<Parameters>
 		<ScriptParameter id="2" type="string" values="">
-			<Description>ServiceIds</Description>
+			<Description>DestinationIds</Description>
 		</ScriptParameter>
 	</Parameters>
 

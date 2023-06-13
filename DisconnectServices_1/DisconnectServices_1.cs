@@ -56,6 +56,8 @@ namespace DisconnectServices_1
 	using System.Linq;
 	using Newtonsoft.Json;
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
+	using Skyline.DataMiner.Core.DataMinerSystem.Common;
 
 	/// <summary>
 	/// Represents a DataMiner Automation script.
@@ -70,14 +72,14 @@ namespace DisconnectServices_1
 		{
 			try
 			{
-				string serviceRawIds = engine.GetScriptParam("ServiceIds").Value;
-				if (!TryGetIdsFromInput(serviceRawIds, out List<string> serviceIds))
+				var destinationIdsParameter = engine.GetScriptParam("DestinationIds").Value;
+				if (!TryGetIdsFromInput(destinationIdsParameter, out List<string> destinationIds))
 				{
-					engine.ExitFail("Invalid services!");
+					engine.ExitFail("Invalid destinations!");
 					return;
 				}
 
-				CancelCurrentServices(engine, serviceIds);
+				DisconnectDestinations(engine, destinationIds);
 			}
 			catch (Exception e)
 			{
@@ -86,7 +88,7 @@ namespace DisconnectServices_1
 			}
 		}
 
-		private static void CancelCurrentServices(IEngine engine, List<string> serviceIds)
+		private static void DisconnectDestinations(IEngine engine, List<string> destinationIds)
 		{
 			var nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
 			if (nevionVideoIPathElement == null)
@@ -101,7 +103,22 @@ namespace DisconnectServices_1
 				return;
 			}
 
-			foreach (var serviceId in serviceIds)
+			var dms = engine.GetDms();
+
+			var nevionVideoIPathDmsElement = dms.GetElement(nevionVideoIPathElement.ElementName);
+			var currentServicesTable = nevionVideoIPathDmsElement.GetTable(1500);
+
+			var servicesToCancel = new List<string>();
+			foreach (var destinationId in destinationIds)
+			{
+				var rows = currentServicesTable.QueryData(new[] { new ColumnFilter { Pid = 1508, ComparisonOperator = ComparisonOperator.Equal, Value = destinationId } });
+				if (rows.Any())
+				{
+					servicesToCancel.AddRange(rows.Select(r => Convert.ToString(r[0])));
+				}
+			}
+
+			foreach (var serviceId in servicesToCancel)
 			{
 				nevionVideoIPathElement.SetParameterByPrimaryKey(1515, serviceId, 1);
 			}

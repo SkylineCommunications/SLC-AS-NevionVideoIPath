@@ -81,8 +81,8 @@ namespace CancelService_1
 			}
 			catch (Exception e)
 			{
-				engine.Log($"Disconnect failed: {e}");
-				engine.ExitFail("Disconnect failed due to unknown exception!");
+				engine.Log($"Cancel failed: {e}");
+				engine.ExitFail("Cancel failed due to unknown exception!");
 			}
 		}
 
