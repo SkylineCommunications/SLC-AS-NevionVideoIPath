@@ -116,19 +116,11 @@ namespace ConnectServices_1
 					return;
 				}
 
-				var profileName = profileNames.FirstOrDefault();
-				if (String.IsNullOrEmpty(profileName))
-				{
-					engine.ExitFail("Invalid profile!");
-					return;
-				}
-
-				ConnectServices(engine, sourceName, destinationNames, profileName);
+				ConnectServices(engine, sourceNames.FirstOrDefault(), destinationNames, profile.FirstOrDefault());
 			}
 			catch (Exception e)
 			{
-				engine.Log($"Connect failed: {e}");
-				engine.ExitFail("Connect failed due to unknown exception!");
+				engine.Log($"ConnectServices Script|Run|Something went wrong while disconnecting services {e}");
 			}
 		}
 
@@ -154,7 +146,7 @@ namespace ConnectServices_1
 			nevionVideoIPathElement.SetParameter(2309, visioString);
 		}
 
-		private static bool TryGetNamesFromInput(string input, out List<string> labels)
+		private static bool TryGetInputValue(string input, out List<string> labels)
 		{
 			labels = new List<string>();
 

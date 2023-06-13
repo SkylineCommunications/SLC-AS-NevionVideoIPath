@@ -131,6 +131,8 @@ namespace ScheduleServices_1
 
 				Initialize(engine, sourceName, destinationNames, profileName);
 
+				Initialize(engine, sourceNames.FirstOrDefault(), destinationNames, profile.FirstOrDefault());
+
 				var controller = new InteractiveController(engine);
 				controller.Run(scheduleDialog);
 			}
@@ -152,7 +154,7 @@ namespace ScheduleServices_1
 			scheduleDialog.ConnectButton.Pressed += (s, o) => engine.ExitSuccess("");
 		}
 
-		private static bool TryGetNamesFromInput(string input, out List<string> labels)
+		private static bool TryGetInputValue(string input, out List<string> labels)
 		{
 			labels = new List<string>();
 
