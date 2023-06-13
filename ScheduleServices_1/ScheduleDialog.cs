@@ -13,20 +13,28 @@
 		private readonly Label sourceNameValue = new Label();
 		private readonly Label destinationNamesLabel = new Label("Destination(s)");
 		private readonly Label destinationNameValues = new Label();
-		private readonly Label profileLabel = new Label("Profiles");
-		private readonly DropDown profileDropDown = new DropDown();
+		private readonly Label profileLabel = new Label("Profile");
+		private readonly Label profileValue = new Label();
 
 		private readonly Label serviceNameLabel = new Label("Service Name");
-		private readonly TextBox serviceNameTextBox = new TextBox();
+		private readonly TextBox serviceNameTextBox = new TextBox() { PlaceHolder = "(required)", MinWidth = 300 };
 		private readonly Label descriptionLabel = new Label("Description");
-		private readonly TextBox descriptionTextBox = new TextBox();
-		private readonly Label tagLabel = new Label("Tag");
-		private readonly TextBox tagTextBox = new TextBox();
+		private readonly TextBox descriptionTextBox = new TextBox() { PlaceHolder = "(optional)" };
+		private readonly Label tagsLabel = new Label("Tags");
+		private readonly TextBox tagsTextBox = new TextBox() { PlaceHolder = "(optional)", Tooltip = "Service Tags" };
 
-		private readonly Label startTimeLabel = new Label("Start");
-		private readonly DateTimePicker startTime = new DateTimePicker(DateTime.Now);
-		private readonly Label endTimeLabel = new Label("End");
-		private readonly DateTimePicker endTime = new DateTimePicker(DateTime.Now.AddHours(1));
+		private readonly Label startLabel = new Label("Start");
+		private readonly RadioButtonList startRadioButtonList = new RadioButtonList(new[] { "Now", "In x from Now", "Date/Time" }, "Now");
+		private readonly DateTimePicker startDateTimePicker = new DateTimePicker(DateTime.Now.AddMinutes(30)) { IsVisible = false };
+		private readonly TimePicker startTimePicker = new TimePicker(TimeSpan.FromMinutes(30)) { IsVisible = false };
+
+		private readonly Label endLabel = new Label("End");
+		private readonly RadioButtonList endRadioButtonList = new RadioButtonList(new[] { "Never", "In x from Start", "Date/Time" }, "Never");
+		private readonly DateTimePicker endDateTimePicker = new DateTimePicker(DateTime.Now.AddHours(1)) { IsVisible = false };
+		private readonly TimePicker endTimePicker = new TimePicker(TimeSpan.FromMinutes(30)) { IsVisible = false };
+
+		private readonly Label routeLabel = new Label("Route");
+		private readonly RadioButtonList routeRadioButtonList = new RadioButtonList(new[] { "Point-to-Point", "Point-to-Multipoint" }, "Point-to-Multipoint");
 
 		private readonly Element nevionVideoIPathElement;
 
@@ -49,10 +57,11 @@
 				return;
 			}
 
+			startRadioButtonList.Changed += (s, o) => HandleStartOptionChanged();
+			endRadioButtonList.Changed += (s, o) => HandleEndOptionChanged();
 
 			ConnectButton.Pressed += (s, o) => TriggerConnectOnElement();
 
-			InitializeProfiles();
 			GenerateUI();
 		}
 
@@ -90,12 +99,67 @@
 		{
 			get
 			{
-				return profileDropDown.Selected;
+				return profileValue.Text;
 			}
 
 			private set
 			{
-				profileDropDown.Selected = value;
+				profileValue.Text = value;
+			}
+		}
+
+		public string Name
+		{
+			get
+			{
+				return serviceNameTextBox.Text;
+			}
+
+			private set
+			{
+				serviceNameTextBox.Text = value;
+			}
+		}
+
+		public DateTime Start
+		{
+			get
+			{
+				var startSelection = startRadioButtonList.Selected;
+				if (startSelection == "In x from Now")
+				{
+					var timeSpan = startTimePicker.TimeInterval;
+					return DateTime.Now.Add(timeSpan);
+				}
+				else if (startSelection == "Date/Time")
+				{
+					return startDateTimePicker.DateTime;
+				}
+				else
+				{
+					return DateTime.Now;
+				}
+			}
+		}
+
+		public DateTime? End
+		{
+			get
+			{
+				var endSelection = endRadioButtonList.Selected;
+				if (endSelection == "In x from Start")
+				{
+					var timeSpan = endTimePicker.TimeInterval;
+					return Start.Add(timeSpan);
+				}
+				else if (endSelection == "Date/Time")
+				{
+					return endDateTimePicker.DateTime;
+				}
+				else
+				{
+					return null;
+				}
 			}
 		}
 
@@ -106,27 +170,76 @@
 			SourceName = sourceName;
 			DestinationNames = destinationNames;
 			ProfileName = profile;
+
+			Name = $"{SourceName}->{(DestinationNames.Count > 1 ? "Multipoint" : DestinationNames[0])}";
+
+			if (DestinationNames.Count > 1)
+			{
+				routeRadioButtonList.SetOptions(new[]{ "Point-to-Multipoint" });
+			}
 		}
 
 		public void TriggerConnectOnElement()
 		{
-			string route = DestinationNames.Count > 1 ? "Point-to-Multipoint" : "Point-to-Point";
-
-			var concatenatedDestnationNames = string.Join(",", DestinationNames);
-			string visioString = string.Join(";", profileDropDown.Selected, serviceNameTextBox.Text, SourceName, concatenatedDestnationNames, Convert.ToString(startTime.DateTime.ToOADate(), CultureInfo.InvariantCulture), Convert.ToString(endTime.DateTime.ToOADate(), CultureInfo.InvariantCulture), route, 0, descriptionTextBox.Text, tagTextBox.Text);
+			var visioString = String.Join(
+				";",
+				ProfileName,
+				Name,
+				SourceName,
+				String.Join(",", DestinationNames),
+				Convert.ToString(Start.ToOADate(), CultureInfo.InvariantCulture),
+				End.HasValue ? Convert.ToString(End.Value.ToOADate(), CultureInfo.InvariantCulture) : String.Empty,
+				routeRadioButtonList.Selected,
+				Convert.ToInt32(!End.HasValue),
+				descriptionTextBox.Text,
+				tagsTextBox.Text);
 
 			nevionVideoIPathElement.SetParameter(2309, visioString);
+		}
+
+		private void HandleStartOptionChanged()
+		{
+			var startSelection = startRadioButtonList.Selected;
+			if (startSelection == "In x from Now")
+			{
+				startDateTimePicker.IsVisible = false;
+				startTimePicker.IsVisible = true;
+			}
+			else if (startSelection == "Date/Time")
+			{
+				startDateTimePicker.IsVisible = true;
+				startTimePicker.IsVisible = false;
+			}
+			else
+			{
+				startDateTimePicker.IsVisible = false;
+				startTimePicker.IsVisible = false;
+			}
+		}
+
+		private void HandleEndOptionChanged()
+		{
+			var endSelection = endRadioButtonList.Selected;
+			if (endSelection == "In x from Start")
+			{
+				endDateTimePicker.IsVisible = false;
+				endTimePicker.IsVisible = true;
+			}
+			else if (endSelection == "Date/Time")
+			{
+				endDateTimePicker.IsVisible = true;
+				endTimePicker.IsVisible = false;
+			}
+			else
+			{
+				endDateTimePicker.IsVisible = false;
+				endTimePicker.IsVisible = false;
+			}
 		}
 
 		private void GenerateUI()
 		{
 			int row = -1;
-
-			AddWidget(serviceNameLabel, ++row, 0);
-			AddWidget(serviceNameTextBox, row, 1);
-
-			AddWidget(profileLabel, ++row, 0);
-			AddWidget(profileDropDown, row, 1);
 
 			AddWidget(sourceNameLabel, ++row, 0);
 			AddWidget(sourceNameValue, row, 1);
@@ -134,32 +247,38 @@
 			AddWidget(destinationNamesLabel, ++row, 0);
 			AddWidget(destinationNameValues, row, 1);
 
-			AddWidget(startTimeLabel, ++row, 0);
-			AddWidget(startTime, row, 1);
-			AddWidget(endTimeLabel, ++row, 0);
-			AddWidget(endTime, row, 1);
+			AddWidget(profileLabel, ++row, 0);
+			AddWidget(profileValue, row, 1);
 
-			AddWidget(tagLabel, ++row, 0);
-			AddWidget(tagTextBox, row, 1);
+			AddWidget(new WhiteSpace(), ++row, 0);
+
+			AddWidget(serviceNameLabel, ++row, 0);
+			AddWidget(serviceNameTextBox, row, 1);
 
 			AddWidget(descriptionLabel, ++row, 0);
 			AddWidget(descriptionTextBox, row, 1);
 
-			row += row + 4;
+			AddWidget(tagsLabel, ++row, 0);
+			AddWidget(tagsTextBox, row, 1);
+
+			AddWidget(new WhiteSpace(), ++row, 0);
+
+			AddWidget(startLabel, ++row, 0, HorizontalAlignment.Left, VerticalAlignment.Top);
+			AddWidget(startRadioButtonList, row, 1, HorizontalAlignment.Left, VerticalAlignment.Top);
+			AddWidget(startDateTimePicker, ++row, 1);
+			AddWidget(startTimePicker, ++row, 1);
+
+			AddWidget(endLabel, ++row, 0, HorizontalAlignment.Left, VerticalAlignment.Top);
+			AddWidget(endRadioButtonList, row, 1, HorizontalAlignment.Left, VerticalAlignment.Top);
+			AddWidget(endDateTimePicker, ++row, 1);
+			AddWidget(endTimePicker, ++row, 1);
+
+			AddWidget(routeLabel, ++row, 0, HorizontalAlignment.Left, VerticalAlignment.Top);
+			AddWidget(routeRadioButtonList, row, 1, HorizontalAlignment.Left, VerticalAlignment.Top);
 
 			AddWidget(new WhiteSpace(), ++row, 0);
 
 			AddWidget(ConnectButton, ++row, 0);
-		}
-
-		private void InitializeProfiles()
-		{
-			var profileNames = nevionVideoIPathElement.GetTableDisplayKeys(2400);
-			if (profileNames != null && profileNames.Any())
-			{
-				profileDropDown.SetOptions(profileNames);
-				profileDropDown.Selected = profileNames.FirstOrDefault();
-			}
 		}
 	}
 }
