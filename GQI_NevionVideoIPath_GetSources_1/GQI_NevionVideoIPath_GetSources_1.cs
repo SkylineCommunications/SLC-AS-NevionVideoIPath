@@ -100,16 +100,14 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 
 	private HashSet<string> GetTagsForProfile()
 	{
-		var profileTags = new HashSet<string>();
-
 		if (String.IsNullOrEmpty(profile))
 		{
-			return profileTags;
+			return new HashSet<string>();
 		}
 
 		if (dataminerId == -1 || elementId == -1)
 		{
-			return profileTags;
+			return new HashSet<string>();
 		}
 
 		var tableId = 2400;
@@ -117,14 +115,21 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
 		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
 		{
-			return profileTags;
+			return new HashSet<string>();
 		}
 
 		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
 		if (columns.Length < 4)
 		{
-			return profileTags;
+			return new HashSet<string>();
 		}
+
+		return ProcessProfilesTable(columns);
+	}
+
+	private HashSet<string> ProcessProfilesTable(ParameterValue[] columns)
+	{
+		var profileTags = new HashSet<string>();
 
 		for (int i = 0; i < columns[1].ArrayValue.Length; i++)
 		{
@@ -160,11 +165,9 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 
 	private List<GQIRow> GetSourceRows(params string[] tagFilter)
 	{
-		var rows = new List<GQIRow>();
-
 		if (dataminerId == -1 || elementId == -1)
 		{
-			return rows;
+			return new List<GQIRow>();
 		}
 
 		var tableId = 1300;
@@ -172,36 +175,40 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
 		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
 		{
-			return rows;
+			return new List<GQIRow>();
 		}
 
 		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
 		if (columns.Length < 6)
 		{
-			return rows;
+			return new List<GQIRow>();
 		}
+
+		return ProcessSourceTable(columns, tagFilter);
+	}
+
+	private List<GQIRow> ProcessSourceTable(ParameterValue[] columns, params string[] tagFilter)
+	{
+		var rows = new List<GQIRow>();
 
 		for (int i = 0; i < columns[0].ArrayValue.Length; i++)
 		{
 			var nameCell = columns[0].ArrayValue[i];
-			if (nameCell.IsEmpty)
+			var idCell = columns[1].ArrayValue[i];
+			var descriptionCell = columns[2].ArrayValue[i];
+			var tagsCell = columns[3].ArrayValue[i];
+			var descriptorLabelCell = columns[4].ArrayValue[i];
+			var fDescriptorLabelCell = columns[5].ArrayValue[i];
+
+			if (nameCell.IsEmpty || idCell.IsEmpty)
 			{
 				continue;
 			}
 
 			var name = nameCell.CellValue.StringValue;
-
-			var idCell = columns[1].ArrayValue[i];
-			if (idCell.IsEmpty)
-			{
-				continue;
-			}
-
 			var id = idCell.CellValue.StringValue;
 
-			var tagsCell = columns[3].ArrayValue[i];
 			var tagsInCell = !tagsCell.IsEmpty ? tagsCell.CellValue.StringValue : String.Empty;
-
 			if (tagFilter != null && tagFilter.Any())
 			{
 				var tagsForSource = tagsInCell.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim());
@@ -211,17 +218,14 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 				}
 			}
 
-			var descriptionCell = columns[2].ArrayValue[i];
 			var description = !descriptionCell.IsEmpty ? descriptionCell.CellValue.StringValue : String.Empty;
 
-			var descriptorLabelCell = columns[4].ArrayValue[i];
 			var descriptorLabel = !descriptorLabelCell.IsEmpty ? descriptorLabelCell.CellValue.StringValue : String.Empty;
 			if (String.IsNullOrEmpty(descriptorLabel))
 			{
 				continue;
 			}
 
-			var fDescriptorLabelCell = columns[5].ArrayValue[i];
 			var fDescriptorLabel = !fDescriptorLabelCell.IsEmpty ? fDescriptorLabelCell.CellValue.StringValue : String.Empty;
 
 			var row = new GQIRow(

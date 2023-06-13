@@ -101,16 +101,14 @@ public class GQI_NevionVideoIPath_GetDestinations : IGQIDataSource, IGQIOnInit, 
 
 	private HashSet<string> GetTagsForProfile()
 	{
-		var profileTags = new HashSet<string>();
-
 		if (String.IsNullOrEmpty(profile))
 		{
-			return profileTags;
+			return new HashSet<string>();
 		}
 
 		if (dataminerId == -1 || elementId == -1)
 		{
-			return profileTags;
+			return new HashSet<string>();
 		}
 
 		var tableId = 2400;
@@ -118,14 +116,21 @@ public class GQI_NevionVideoIPath_GetDestinations : IGQIDataSource, IGQIOnInit, 
 		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
 		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
 		{
-			return profileTags;
+			return new HashSet<string>();
 		}
 
 		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
 		if (columns.Length < 4)
 		{
-			return profileTags;
+			return new HashSet<string>();
 		}
+
+		return ProcessProfilesTable(columns);
+	}
+
+	private HashSet<string> ProcessProfilesTable(ParameterValue[] columns)
+	{
+		var profileTags = new HashSet<string>();
 
 		for (int i = 0; i < columns[1].ArrayValue.Length; i++)
 		{
