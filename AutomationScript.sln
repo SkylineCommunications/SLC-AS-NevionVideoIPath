@@ -89,6 +89,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Actions", "Actions", "{54F7
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GQI_NevionVideoIPath_GetDestinations_1", "GQI_NevionVideoIPath_GetDestinations_1\GQI_NevionVideoIPath_GetDestinations_1.csproj", "{FDE62181-0D66-459D-B17B-260925CAB08B}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CancelService", "CancelService", "{1CFCAF28-BA23-4606-9683-3805EFDF5461}"
+	ProjectSection(SolutionItems) = preProject
+		CancelService.xml = CancelService.xml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Actions", "Actions", "{D1713575-95C2-4B4D-BA33-DAAF0537E266}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CancelService_1", "CancelService_1\CancelService_1.csproj", "{C891CD1C-2EFD-4722-815E-EDF66A636148}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -119,6 +128,10 @@ Global
 		{FDE62181-0D66-459D-B17B-260925CAB08B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FDE62181-0D66-459D-B17B-260925CAB08B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FDE62181-0D66-459D-B17B-260925CAB08B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C891CD1C-2EFD-4722-815E-EDF66A636148}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C891CD1C-2EFD-4722-815E-EDF66A636148}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C891CD1C-2EFD-4722-815E-EDF66A636148}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C891CD1C-2EFD-4722-815E-EDF66A636148}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -146,6 +159,9 @@ Global
 		{476E569A-94C7-46BE-BD79-00877DF3DF72} = {A5F96D06-DEB8-49A8-B58A-74B24B264661}
 		{54F71850-018B-40CF-AAC1-994C43495B98} = {476E569A-94C7-46BE-BD79-00877DF3DF72}
 		{FDE62181-0D66-459D-B17B-260925CAB08B} = {54F71850-018B-40CF-AAC1-994C43495B98}
+		{1CFCAF28-BA23-4606-9683-3805EFDF5461} = {93230EAF-8C3B-44B0-96B2-9092F166A0C8}
+		{D1713575-95C2-4B4D-BA33-DAAF0537E266} = {1CFCAF28-BA23-4606-9683-3805EFDF5461}
+		{C891CD1C-2EFD-4722-815E-EDF66A636148} = {D1713575-95C2-4B4D-BA33-DAAF0537E266}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D725A676-34B2-415E-B7A0-B037D947C360}
