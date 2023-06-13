@@ -26,7 +26,7 @@
 		private readonly Label startLabel = new Label("Start");
 		private readonly RadioButtonList startRadioButtonList = new RadioButtonList(new[] { "Now", "In x from Now", "Date/Time" }, "Now");
 		private readonly DateTimePicker startDateTimePicker = new DateTimePicker(DateTime.Now.AddMinutes(30)) { IsVisible = false };
-		private readonly TimePicker startTimePicker = new TimePicker(TimeSpan.FromMinutes(30)) { IsVisible = false };
+		private readonly TimePicker startTimePicker = new TimePicker(TimeSpan.FromMinutes(30)) { IsVisible = false, HasDropDownButton = false, HasSpinnerButton = false };
 
 		private readonly Label endLabel = new Label("End");
 		private readonly RadioButtonList endRadioButtonList = new RadioButtonList(new[] { "Never", "In x from Start", "Date/Time" }, "Never");

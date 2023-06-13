@@ -134,6 +134,10 @@ namespace ScheduleServices_1
 				var controller = new InteractiveController(engine);
 				controller.Run(scheduleDialog);
 			}
+			catch (ScriptAbortException)
+			{
+				// do nothing
+			}
 			catch (Exception e)
 			{
 				engine.Log($"Schedule failed: {e}");
