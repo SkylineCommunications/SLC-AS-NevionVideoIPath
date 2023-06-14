@@ -45,6 +45,14 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 
 	public GQIPage GetNextPage(GetNextPageInputArgs args)
 	{
+		if (dataminerId == -1 || elementId == -1)
+		{
+			return new GQIPage(new GQIRow[0])
+			{
+				HasNextPage = false,
+			};
+		}
+
 		List<GQIRow> rows;
 		if (!String.IsNullOrEmpty(tag))
 		{
@@ -100,35 +108,12 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 
 	private HashSet<string> GetTagsForProfile()
 	{
-		if (String.IsNullOrEmpty(profile))
+		var columns = GetProfilesTableColumns();
+		if (!columns.Any())
 		{
 			return new HashSet<string>();
 		}
 
-		if (dataminerId == -1 || elementId == -1)
-		{
-			return new HashSet<string>();
-		}
-
-		var tableId = 2400;
-		var getPartialTableMessage = new GetPartialTableMessage(dataminerId, elementId, tableId, new[] { "forceFullTable=true" });
-		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
-		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
-		{
-			return new HashSet<string>();
-		}
-
-		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
-		if (columns.Length < 4)
-		{
-			return new HashSet<string>();
-		}
-
-		return ProcessProfilesTable(columns);
-	}
-
-	private HashSet<string> ProcessProfilesTable(ParameterValue[] columns)
-	{
 		var profileTags = new HashSet<string>();
 
 		for (int i = 0; i < columns[1].ArrayValue.Length; i++)
@@ -139,28 +124,52 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 				continue;
 			}
 
-			if (profileNameCell.CellValue.StringValue == profile)
+			var profileName = profileNameCell.CellValue.StringValue;
+			if (profileName != profile)
 			{
-				var profileTagsCell = columns[3].ArrayValue[i];
-				if (!profileTagsCell.IsEmpty)
-				{
-					var valueTags = profileTagsCell.CellValue.StringValue.Split(',');
-					foreach (var valueTag in valueTags)
-					{
-						if (String.IsNullOrEmpty(valueTag))
-						{
-							continue;
-						}
+				continue;
+			}
 
-						profileTags.Add(valueTag.Trim());
-					}
-				}
-
+			var profileTagsCell = columns[3].ArrayValue[i];
+			if (profileTagsCell.IsEmpty)
+			{
 				break;
 			}
+
+			var valueTags = profileTagsCell.CellValue.StringValue.Split(',');
+			foreach (var valueTag in valueTags)
+			{
+				if (String.IsNullOrEmpty(valueTag))
+				{
+					continue;
+				}
+
+				profileTags.Add(valueTag.Trim());
+			}
+
+			break;
 		}
 
 		return profileTags;
+	}
+
+	private ParameterValue[] GetProfilesTableColumns()
+	{
+		var tableId = 2400;
+		var getPartialTableMessage = new GetPartialTableMessage(dataminerId, elementId, tableId, new[] { "forceFullTable=true" });
+		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
+		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
+		{
+			return new ParameterValue[0];
+		}
+
+		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
+		if (columns.Length < 4)
+		{
+			return new ParameterValue[0];
+		}
+
+		return columns;
 	}
 
 	private List<GQIRow> GetSourceRows(params string[] tagFilter)

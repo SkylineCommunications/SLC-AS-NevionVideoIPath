@@ -26,12 +26,12 @@
 		private readonly Label startLabel = new Label("Start");
 		private readonly RadioButtonList startRadioButtonList = new RadioButtonList(new[] { "Now", "In x from Now", "Date/Time" }, "Now");
 		private readonly DateTimePicker startDateTimePicker = new DateTimePicker(DateTime.Now.AddMinutes(30)) { IsVisible = false };
-		private readonly TimePicker startTimePicker = new TimePicker(TimeSpan.FromMinutes(30)) { IsVisible = false, HasDropDownButton = false, HasSpinnerButton = false };
+		private readonly Time startTimePicker = new Time(TimeSpan.FromMinutes(30)) { IsVisible = false, HasSeconds = false, Minimum = TimeSpan.FromMinutes(5), Maximum = TimeSpan.FromHours(24), ClipValueToRange = true };
 
 		private readonly Label endLabel = new Label("End");
 		private readonly RadioButtonList endRadioButtonList = new RadioButtonList(new[] { "Never", "In x from Start", "Date/Time" }, "Never");
 		private readonly DateTimePicker endDateTimePicker = new DateTimePicker(DateTime.Now.AddHours(1)) { IsVisible = false };
-		private readonly TimePicker endTimePicker = new TimePicker(TimeSpan.FromMinutes(30)) { IsVisible = false };
+		private readonly Time endTimePicker = new Time(TimeSpan.FromMinutes(30)) { IsVisible = false, HasSeconds = false, Minimum = TimeSpan.FromMinutes(5), Maximum = TimeSpan.FromHours(24) };
 
 		private readonly Label routeLabel = new Label("Route");
 		private readonly RadioButtonList routeRadioButtonList = new RadioButtonList(new[] { "Point-to-Point", "Point-to-Multipoint" }, "Point-to-Multipoint");
@@ -128,8 +128,7 @@
 				var startSelection = startRadioButtonList.Selected;
 				if (startSelection == "In x from Now")
 				{
-					var timeSpan = startTimePicker.TimeInterval;
-					return DateTime.Now.Add(timeSpan);
+					return DateTime.Now.Add(startTimePicker.TimeSpan);
 				}
 				else if (startSelection == "Date/Time")
 				{
@@ -149,8 +148,7 @@
 				var endSelection = endRadioButtonList.Selected;
 				if (endSelection == "In x from Start")
 				{
-					var timeSpan = endTimePicker.TimeInterval;
-					return Start.Add(timeSpan);
+					return Start.Add(endTimePicker.TimeSpan);
 				}
 				else if (endSelection == "Date/Time")
 				{
