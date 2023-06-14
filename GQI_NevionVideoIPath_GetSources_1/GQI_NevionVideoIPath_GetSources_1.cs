@@ -174,26 +174,31 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 
 	private List<GQIRow> GetSourceRows(params string[] tagFilter)
 	{
-		if (dataminerId == -1 || elementId == -1)
-		{
-			return new List<GQIRow>();
-		}
-
-		var tableId = 1300;
-		var getPartialTableMessage = new GetPartialTableMessage(dataminerId, elementId, tableId, new[] { "forceFullTable=true" });
-		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
-		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
-		{
-			return new List<GQIRow>();
-		}
-
-		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
-		if (columns.Length < 6)
+		var columns = GetSourceTableColumns();
+		if (!columns.Any())
 		{
 			return new List<GQIRow>();
 		}
 
 		return ProcessSourceTable(columns, tagFilter);
+	}
+
+	private ParameterValue[] GetSourceTableColumns()
+	{
+		var getPartialTableMessage = new GetPartialTableMessage(dataminerId, elementId, 1300, new[] { "forceFullTable=true" });
+		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
+		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
+		{
+			return new ParameterValue[0];
+		}
+
+		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
+		if (columns.Length < 6)
+		{
+			return new ParameterValue[0];
+		}
+
+		return columns;
 	}
 
 	private List<GQIRow> ProcessSourceTable(ParameterValue[] columns, params string[] tagFilter)

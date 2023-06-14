@@ -175,26 +175,36 @@ public class GQI_NevionVideoIPath_GetDestinations : IGQIDataSource, IGQIOnInit, 
 
 	private List<GQIRow> GetDestinationRows(params string[] tagFilter)
 	{
-		var rows = new List<GQIRow>();
-
-		if (dataminerId == -1 || elementId == -1)
+		var columns = GetDestinationTableColumns();
+		if (!columns.Any())
 		{
-			return rows;
+			return new List<GQIRow>();
 		}
 
-		var tableId = 1400;
-		var getPartialTableMessage = new GetPartialTableMessage(dataminerId, elementId, tableId, new[] { "forceFullTable=true" });
+		return ProcessDestinationTable(columns, tagFilter);
+	}
+
+	private ParameterValue[] GetDestinationTableColumns()
+	{
+		var getPartialTableMessage = new GetPartialTableMessage(dataminerId, elementId, 1400, new[] { "forceFullTable=true" });
 		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
 		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
 		{
-			return rows;
+			return new ParameterValue[0];
 		}
 
 		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
 		if (columns.Length < 6)
 		{
-			return rows;
+			return new ParameterValue[0];
 		}
+
+		return columns;
+	}
+
+	private List<GQIRow> ProcessDestinationTable(ParameterValue[] columns, params string[] tagFilter)
+	{
+		var rows = new List<GQIRow>();
 
 		for (int i = 0; i < columns[0].ArrayValue.Length; i++)
 		{
