@@ -207,54 +207,101 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 
 		for (int i = 0; i < columns[0].ArrayValue.Length; i++)
 		{
-			var nameCell = columns[0].ArrayValue[i];
-			var idCell = columns[1].ArrayValue[i];
-			var descriptionCell = columns[2].ArrayValue[i];
-			var tagsCell = columns[3].ArrayValue[i];
-			var descriptorLabelCell = columns[4].ArrayValue[i];
-			var fDescriptorLabelCell = columns[5].ArrayValue[i];
-
-			if (nameCell.IsEmpty || idCell.IsEmpty)
+			var sourceRow = new SourceRow(columns, i);
+			if (!sourceRow.IsValid())
 			{
 				continue;
 			}
 
-			var name = nameCell.CellValue.StringValue;
-			var id = idCell.CellValue.StringValue;
-
-			var tagsInCell = !tagsCell.IsEmpty ? tagsCell.CellValue.StringValue : String.Empty;
-			if (tagFilter != null && tagFilter.Any())
-			{
-				var tagsForSource = tagsInCell.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim());
-				if (!tagsForSource.Intersect(tagFilter).Any())
-				{
-					continue;
-				}
-			}
-
-			var description = !descriptionCell.IsEmpty ? descriptionCell.CellValue.StringValue : String.Empty;
-
-			var descriptorLabel = !descriptorLabelCell.IsEmpty ? descriptorLabelCell.CellValue.StringValue : String.Empty;
-			if (String.IsNullOrEmpty(descriptorLabel))
+			if (!sourceRow.MatchesTagFilter(tagFilter))
 			{
 				continue;
 			}
 
-			var fDescriptorLabel = !fDescriptorLabelCell.IsEmpty ? fDescriptorLabelCell.CellValue.StringValue : String.Empty;
-
-			var row = new GQIRow(
-				new GQICell[]
-				{
-					new GQICell() { Value = name },
-					new GQICell() { Value = id },
-					new GQICell() { Value = description },
-					new GQICell() { Value = tagsInCell },
-					new GQICell() { Value = descriptorLabel },
-					new GQICell() { Value = fDescriptorLabel },
-				});
-			rows.Add(row);
+			rows.Add(sourceRow.ToGqiRow());
 		}
 
 		return rows;
+	}
+}
+
+public class SourceRow
+{
+	public SourceRow(ParameterValue[] columns, int row)
+	{
+		var nameCell = columns[0].ArrayValue[row];
+		Name = !nameCell.IsEmpty ? nameCell.CellValue.StringValue : String.Empty;
+
+		var idCell = columns[1].ArrayValue[row];
+		Id = !idCell.IsEmpty ? idCell.CellValue.StringValue : String.Empty;
+
+		var tagsCell = columns[3].ArrayValue[row];
+		if (!tagsCell.IsEmpty)
+		{
+			Tags = tagsCell.CellValue.StringValue
+				.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+				.Select(t => t.Trim())
+				.ToArray();
+		}
+
+		var descriptionCell = columns[2].ArrayValue[row];
+		Description = !descriptionCell.IsEmpty ? descriptionCell.CellValue.StringValue : String.Empty;
+
+		var descriptorLabelCell = columns[4].ArrayValue[row];
+		DescriptorLabel = !descriptorLabelCell.IsEmpty ? descriptorLabelCell.CellValue.StringValue : String.Empty;
+
+		var fDescriptorLabelCell = columns[5].ArrayValue[row];
+		FDescriptorLabel = !fDescriptorLabelCell.IsEmpty ? fDescriptorLabelCell.CellValue.StringValue : String.Empty;
+	}
+
+	public string Name { get; private set; }
+
+	public string Id { get; private set; }
+
+	public string Description { get; private set; }
+
+	public string[] Tags { get; private set; } = new string[0];
+
+	public string DescriptorLabel { get; private set; }
+
+	public string FDescriptorLabel { get; private set; }
+
+	public bool IsValid()
+	{
+		if (String.IsNullOrEmpty(Name))
+		{
+			return false;
+		}
+
+		if (String.IsNullOrEmpty(Id))
+		{
+			return false;
+		}
+
+		if (String.IsNullOrEmpty(DescriptorLabel))
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	public bool MatchesTagFilter(params string[] filter)
+	{
+		return Tags.Intersect(filter).Any();
+	}
+
+	public GQIRow ToGqiRow()
+	{
+		return new GQIRow(
+			new GQICell[]
+			{
+				new GQICell() { Value = Name },
+				new GQICell() { Value = Id },
+				new GQICell() { Value = Description },
+				new GQICell() { Value = String.Join(",", Tags) },
+				new GQICell() { Value = DescriptorLabel },
+				new GQICell() { Value = FDescriptorLabel },
+			});
 	}
 }
