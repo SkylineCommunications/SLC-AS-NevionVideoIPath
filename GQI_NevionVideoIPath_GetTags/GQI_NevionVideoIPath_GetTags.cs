@@ -162,26 +162,13 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 
 	private HashSet<string> GetTags(HashSet<string> profileTagsFilter)
 	{
+		var columns = GetTagsTableColumns();
+		if (!columns.Any())
+		{
+			return new HashSet<string>();
+		}
+
 		var tags = new HashSet<string>();
-
-		if (dataminerId == -1 || elementId == -1)
-		{
-			return tags;
-		}
-
-		var tableId = type == Type.Source ? 1300 : 1400;
-		var getPartialTableMessage = new GetPartialTableMessage(dataminerId, elementId, tableId, new[] { "forceFullTable=true" });
-		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
-		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
-		{
-			return tags;
-		}
-
-		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
-		if (columns.Length < 4)
-		{
-			return tags;
-		}
 
 		foreach (var tagsCell in columns[3].ArrayValue)
 		{
@@ -213,5 +200,24 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 		}
 
 		return tags;
+	}
+
+	private ParameterValue[] GetTagsTableColumns()
+	{
+		var tableId = type == Type.Source ? 1300 : 1400;
+		var getPartialTableMessage = new GetPartialTableMessage(dataminerId, elementId, tableId, new[] { "forceFullTable=true" });
+		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
+		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
+		{
+			return new ParameterValue[0];
+		}
+
+		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
+		if (columns.Length < 4)
+		{
+			return new ParameterValue[0];
+		}
+
+		return columns;
 	}
 }
