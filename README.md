@@ -18,5 +18,5 @@ This script makes the user able to create custom services within a certain time 
 
 ## Nevion VideoIPath Application
 
-![Nevion VideoIPath example]("/Documentation/NevionIPathApp.png")
+![Nevion VideoIPath example](/Documentation/NevionIPathApp.png)
 
