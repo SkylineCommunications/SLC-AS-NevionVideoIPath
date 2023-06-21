@@ -14,4 +14,9 @@ Custom GQI data source that retrieves the list of tags for either the sources or
 
 ## Schedule Services Script
 
-This script makes the user able to create custom services within a certain timeframe via an interactive way where fields as profiles, timeframe, service name,... can be defined. The input parameters are the source and destinaton names.
+This script makes the user able to create custom services within a certain time frame via an interactive way where fields as profiles, time frame, service name,... can be defined. The input parameters are the source and destination names.
+
+## Nevion VideoIPath Application
+
+![Nevion VideoIPath example]("/Documentation/NevionIPathApp.png")
+
