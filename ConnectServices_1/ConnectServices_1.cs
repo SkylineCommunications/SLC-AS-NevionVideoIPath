@@ -53,21 +53,30 @@ namespace ConnectServices_1
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Configuration;
 	using System.Linq;
+	using System.Threading;
 	using Newtonsoft.Json;
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
+	using Skyline.DataMiner.Core.DataMinerSystem.Common;
 
 	/// <summary>
 	/// Represents a DataMiner Automation script.
 	/// </summary>
 	public class Script
 	{
+		private static string[] primaryKeysCurrentServices = new string[0];
+		private static Element nevionVideoIPathElement;
+
 		/// <summary>
 		/// The script entry point.
 		/// </summary>
 		/// <param name="engine">Link with SLAutomation process.</param>
 		public static void Run(IEngine engine)
 		{
+			engine.SetFlag(RunTimeFlags.NoKeyCaching);
+
 			try
 			{
 				var sourceDescriptorLabelInputParameter = engine.GetScriptParam("SourceName").Value;
@@ -123,7 +132,17 @@ namespace ConnectServices_1
 					return;
 				}
 
+				nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
+				if (nevionVideoIPathElement == null)
+				{
+					engine.ExitFail("Nevion Video iPath element not found!");
+					return;
+				}
+
+				primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(1500); // Used to check if new connection entries has been added after the ConnectServices.
+
 				ConnectServices(engine, sourceName, destinationNames, profileName);
+				VerifyConnectService(engine, destinationNames);
 			}
 			catch (Exception e)
 			{
@@ -133,13 +152,6 @@ namespace ConnectServices_1
 
 		private static void ConnectServices(IEngine engine, string sourceName, List<string> destinationNames, string profile)
 		{
-			var nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
-			if (nevionVideoIPathElement == null)
-			{
-				engine.ExitFail("Nevion Video iPath element not found!");
-				return;
-			}
-
 			if (!nevionVideoIPathElement.IsActive)
 			{
 				engine.ExitFail("Nevion Video iPath element not active!");
@@ -166,6 +178,23 @@ namespace ConnectServices_1
 			catch (Exception)
 			{
 				return false;
+			}
+		}
+
+		private static void VerifyConnectService(IEngine engine, List<string> destinationNames)
+		{
+			int retries = 0;
+			bool allEntriesFound = false;
+			int tableEntryCountIncludingNewEntries = primaryKeysCurrentServices.Length + destinationNames.Count;
+			while (!allEntriesFound && retries < 100)
+			{
+				engine.Sleep(50);
+
+				var allPrimaryKeys = nevionVideoIPathElement.GetTablePrimaryKeys(1500);
+
+				allEntriesFound = allPrimaryKeys.Length == tableEntryCountIncludingNewEntries;
+
+				retries++;
 			}
 		}
 	}

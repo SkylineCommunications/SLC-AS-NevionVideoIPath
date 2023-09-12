@@ -62,6 +62,9 @@ namespace CancelService_1
 	/// </summary>
 	public class Script
 	{
+		private static string[] primaryKeysCurrentServices = new string[0];
+		private static Element nevionVideoIPathElement;
+
 		/// <summary>
 		/// The script entry point.
 		/// </summary>
@@ -77,7 +80,17 @@ namespace CancelService_1
 					return;
 				}
 
+				nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
+				if (nevionVideoIPathElement == null)
+				{
+					engine.ExitFail("Nevion Video iPath element not found!");
+					return;
+				}
+
+				primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(1500); // Used to check if new connection entries has been added after the ConnectServices.
+
 				CancelCurrentServices(engine, serviceIds);
+				VerifyCancelService(engine, serviceIds);
 			}
 			catch (Exception e)
 			{
@@ -120,6 +133,23 @@ namespace CancelService_1
 			catch (Exception)
 			{
 				return false;
+			}
+		}
+
+		private static void VerifyCancelService(IEngine engine, List<string> serviceIds)
+		{
+			int retries = 0;
+			bool allEntriesFound = false;
+			int tableEntriesExcludingCurrentDestination = primaryKeysCurrentServices.Length - serviceIds.Count;
+			while (!allEntriesFound && retries < 100)
+			{
+				engine.Sleep(60);
+
+				var allPrimaryKeys = nevionVideoIPathElement.GetTablePrimaryKeys(1500);
+
+				allEntriesFound = allPrimaryKeys.Length == tableEntriesExcludingCurrentDestination;
+
+				retries++;
 			}
 		}
 	}

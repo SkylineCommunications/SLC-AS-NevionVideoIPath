@@ -39,6 +39,7 @@
 		private readonly Element nevionVideoIPathElement;
 
 		private List<string> destinationNames;
+		private string[] primaryKeysCurrentServices = new string[0];
 
 		public ScheduleDialog(IEngine engine) : base(engine)
 		{
@@ -57,10 +58,16 @@
 				return;
 			}
 
+			primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(1500); // Used to check if new connection entries has been added after the ConnectServices.
+
 			startRadioButtonList.Changed += (s, o) => HandleStartOptionChanged();
 			endRadioButtonList.Changed += (s, o) => HandleEndOptionChanged();
 
-			ConnectButton.Pressed += (s, o) => TriggerConnectOnElement();
+			ConnectButton.Pressed += (s, o) =>
+			{
+				TriggerConnectOnElement();
+				VerifyConnectService(); // Temproary untill real time updates are fully supported in the apps.
+			};
 
 			GenerateUI();
 		}
@@ -193,6 +200,23 @@
 				tagsTextBox.Text);
 
 			nevionVideoIPathElement.SetParameter(2309, visioString);
+		}
+
+		private void VerifyConnectService()
+		{
+			int retries = 0;
+			bool allEntriesFound = false;
+			int tableEntryCountIncludingNewEntries = primaryKeysCurrentServices.Length + DestinationNames.Count;
+			while (!allEntriesFound && retries < 100)
+			{
+				Engine.Sleep(50);
+
+				var allPrimaryKeys = nevionVideoIPathElement.GetTablePrimaryKeys(1500);
+
+				allEntriesFound = allPrimaryKeys.Length == tableEntryCountIncludingNewEntries;
+
+				retries++;
+			}
 		}
 
 		private void HandleStartOptionChanged()
