@@ -288,20 +288,25 @@ public class SourceRow
 
 	public bool MatchesTagFilter(params string[] filter)
 	{
+		if (filter == null || !filter.Any())
+		{
+			return true;
+		}
+
 		return Tags.Intersect(filter).Any();
 	}
 
 	public GQIRow ToGqiRow()
 	{
 		return new GQIRow(
-			new GQICell[]
+			new[]
 			{
-				new GQICell() { Value = Name },
-				new GQICell() { Value = Id },
-				new GQICell() { Value = Description },
-				new GQICell() { Value = String.Join(",", Tags) },
-				new GQICell() { Value = DescriptorLabel },
-				new GQICell() { Value = FDescriptorLabel },
+				new GQICell { Value = Name },
+				new GQICell { Value = Id },
+				new GQICell { Value = Description },
+				new GQICell { Value = String.Join(",", Tags) },
+				new GQICell { Value = DescriptorLabel },
+				new GQICell { Value = FDescriptorLabel },
 			});
 	}
 }
