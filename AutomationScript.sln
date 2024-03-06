@@ -98,6 +98,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Actions", "Actions", "{D171
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CancelService_1", "CancelService_1\CancelService_1.csproj", "{C891CD1C-2EFD-4722-815E-EDF66A636148}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GQI_NevionVideoIPath_GetDestinationsByTags", "GQI_NevionVideoIPath_GetDestinationsByTags", "{2D9D6F83-120D-4124-81DA-152DC4F75589}"
+	ProjectSection(SolutionItems) = preProject
+		GQI_NevionVideoIPath_GetDestinationsByTags.xml = GQI_NevionVideoIPath_GetDestinationsByTags.xml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Actions", "Actions", "{236B6FEC-9956-4D3C-A627-90965D504995}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GQI_NevionVideoIPath_GetDestinationsByTags_1", "GQI_NevionVideoIPath_GetDestinationsByTags_1\GQI_NevionVideoIPath_GetDestinationsByTags_1.csproj", "{F02E85C1-6334-40FC-99B0-F7C994792BB8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -132,6 +141,10 @@ Global
 		{C891CD1C-2EFD-4722-815E-EDF66A636148}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C891CD1C-2EFD-4722-815E-EDF66A636148}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C891CD1C-2EFD-4722-815E-EDF66A636148}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F02E85C1-6334-40FC-99B0-F7C994792BB8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F02E85C1-6334-40FC-99B0-F7C994792BB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F02E85C1-6334-40FC-99B0-F7C994792BB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F02E85C1-6334-40FC-99B0-F7C994792BB8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -162,6 +175,9 @@ Global
 		{1CFCAF28-BA23-4606-9683-3805EFDF5461} = {93230EAF-8C3B-44B0-96B2-9092F166A0C8}
 		{D1713575-95C2-4B4D-BA33-DAAF0537E266} = {1CFCAF28-BA23-4606-9683-3805EFDF5461}
 		{C891CD1C-2EFD-4722-815E-EDF66A636148} = {D1713575-95C2-4B4D-BA33-DAAF0537E266}
+		{2D9D6F83-120D-4124-81DA-152DC4F75589} = {A5F96D06-DEB8-49A8-B58A-74B24B264661}
+		{236B6FEC-9956-4D3C-A627-90965D504995} = {2D9D6F83-120D-4124-81DA-152DC4F75589}
+		{F02E85C1-6334-40FC-99B0-F7C994792BB8} = {236B6FEC-9956-4D3C-A627-90965D504995}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D725A676-34B2-415E-B7A0-B037D947C360}
