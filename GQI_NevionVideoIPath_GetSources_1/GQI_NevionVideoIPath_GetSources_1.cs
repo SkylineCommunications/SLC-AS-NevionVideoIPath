@@ -15,6 +15,9 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 	private GQIStringArgument tagArgument = new GQIStringArgument("Tags") { IsRequired = false };
 	private string tag;
 
+	private GQIStringArgument selectedSourceNameArgument = new GQIStringArgument("Selected Source Name") { IsRequired = false };
+	private string selectedSourceName;
+
 	private int dataminerId;
 	private int elementId;
 
@@ -28,18 +31,24 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 			new GQIStringColumn("Tags"),
 			new GQIStringColumn("Descriptor Label"),
 			new GQIStringColumn("F Descriptor Label"),
+			new GQIBooleanColumn("Is Selected"),
 		};
 	}
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new GQIArgument[] { profileArgument, tagArgument };
+		return new GQIArgument[] { profileArgument, tagArgument, selectedSourceNameArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
 		profile = args.GetArgumentValue<string>(profileArgument);
 		tag = args.GetArgumentValue<string>(tagArgument);
+		if(!args.TryGetArgumentValue(selectedSourceNameArgument, out selectedSourceName))
+		{
+			selectedSourceName = string.Empty;
+		}
+
 		return new OnArgumentsProcessedOutputArgs();
 	}
 
@@ -207,7 +216,7 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 
 		for (int i = 0; i < columns[0].ArrayValue.Length; i++)
 		{
-			var sourceRow = new SourceRow(columns, i);
+			var sourceRow = new SourceRow(columns, i, selectedSourceName);
 			if (!sourceRow.IsValid())
 			{
 				continue;
@@ -227,7 +236,7 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 
 public class SourceRow
 {
-	public SourceRow(ParameterValue[] columns, int row)
+	public SourceRow(ParameterValue[] columns, int row, string selectedSourceName)
 	{
 		var nameCell = columns[0].ArrayValue[row];
 		Name = !nameCell.IsEmpty ? nameCell.CellValue.StringValue : String.Empty;
@@ -252,6 +261,8 @@ public class SourceRow
 
 		var fDescriptorLabelCell = columns[5].ArrayValue[row];
 		FDescriptorLabel = !fDescriptorLabelCell.IsEmpty ? fDescriptorLabelCell.CellValue.StringValue : String.Empty;
+
+		IsSelected = !string.IsNullOrEmpty(selectedSourceName) && DescriptorLabel.Equals(selectedSourceName);
 	}
 
 	public string Name { get; private set; }
@@ -265,6 +276,8 @@ public class SourceRow
 	public string DescriptorLabel { get; private set; }
 
 	public string FDescriptorLabel { get; private set; }
+
+	public bool IsSelected { get; private set; }
 
 	public bool IsValid()
 	{
@@ -307,6 +320,7 @@ public class SourceRow
 				new GQICell { Value = String.Join(",", Tags) },
 				new GQICell { Value = DescriptorLabel },
 				new GQICell { Value = FDescriptorLabel },
+				new GQICell { Value = IsSelected },
 			});
 	}
 }

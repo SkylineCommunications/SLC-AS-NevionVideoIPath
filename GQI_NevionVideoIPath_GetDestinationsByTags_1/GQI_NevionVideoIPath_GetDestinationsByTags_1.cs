@@ -26,6 +26,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 			new GQIStringColumn("Connected Source"),
 			new GQIStringColumn("Tags"),
 			new GQIStringColumn("ID"),
+			new GQIBooleanColumn("Is Connected"),
 		};
 	}
 
@@ -354,9 +355,10 @@ public class DestinationByTagRow
 			new[]
 			{
 				new GQICell { Value = DescriptorLabel },
-				new GQICell { Value = ConnectedSource },
+				new GQICell { Value = ConnectedSource.Trim() },
 				new GQICell { Value = String.Join(",", Tags) },
 				new GQICell { Value = Id },
+				new GQICell { Value = !String.IsNullOrWhiteSpace(ConnectedSource) },
 			});
 	}
 }

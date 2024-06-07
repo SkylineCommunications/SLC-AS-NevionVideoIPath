@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Skyline.DataMiner.Analytics.GenericInterface;
 using Skyline.DataMiner.Net.Messages;
-using SLDataGateway.API.Types.Results.Paging;
 
 [GQIMetaData(Name = "Nevion VideoIPath Get Destinations")]
 public class GQI_NevionVideoIPath_GetDestinations : IGQIDataSource, IGQIOnInit, IGQIInputArguments

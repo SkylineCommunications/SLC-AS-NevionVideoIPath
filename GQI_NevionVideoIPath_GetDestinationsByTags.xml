@@ -20,7 +20,7 @@
 		<Exe id="1" type="csharp">
 			<Value><![CDATA[[Project:GQI_NevionVideoIPath_GetDestinationsByTags_1]]]></Value>
 			<Param type="preCompile">true</Param>
-			<Param type="libraryName">GQI_NevionVideoIPath_GetDestinations</Param>
+			<Param type="libraryName">GQI_NevionVideoIPath_GetDestinationsByTags</Param>
 			<Message></Message>
 		</Exe>
 	</Script>
