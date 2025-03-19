@@ -248,7 +248,10 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 				continue;
 			}
 
-			destinationIdToSourceNameDic.Add(destinationIdCell.CellValue.StringValue, sourceNameCell.CellValue.StringValue);
+			if (!destinationIdToSourceNameDic.ContainsKey(destinationIdCell.CellValue.StringValue))
+			{
+				destinationIdToSourceNameDic.Add(destinationIdCell.CellValue.StringValue, sourceNameCell.CellValue.StringValue);
+			}
 		}
 
 		return destinationIdToSourceNameDic;
