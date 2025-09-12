@@ -9,14 +9,17 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 {
 	private GQIDMS dms;
 
+	private GQIStringArgument elementIdArgument = new GQIStringArgument("NevionElementId") { IsRequired = false };
+	private string nevionElementId;
+
 	private GQIStringArgument profileArgument = new GQIStringArgument("Profile") { IsRequired = false };
 	private string profile;
 
 	private GQIStringArgument tagArgument = new GQIStringArgument("Tags") { IsRequired = false };
 	private string tag;
 
-	private GQIStringArgument selectedSourceNameArgument = new GQIStringArgument("Selected Source Name") { IsRequired = false };
-	private string selectedSourceName;
+	private GQIStringArgument selectedSourceNamesArgument = new GQIStringArgument("Selected Source Names") { IsRequired = false };
+	private string[] selectedSourceNames;
 
 	private int dataminerId;
 	private int elementId;
@@ -37,18 +40,24 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new GQIArgument[] { profileArgument, tagArgument, selectedSourceNameArgument };
+		return new GQIArgument[] { elementIdArgument, profileArgument, tagArgument, selectedSourceNamesArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
 		profile = args.GetArgumentValue<string>(profileArgument);
+		nevionElementId = Convert.ToString(args.GetArgumentValue(elementIdArgument));
 		tag = args.GetArgumentValue<string>(tagArgument);
-		if(!args.TryGetArgumentValue(selectedSourceNameArgument, out selectedSourceName))
+		if(!args.TryGetArgumentValue(selectedSourceNamesArgument, out var selectedSourceNamesStr))
 		{
-			selectedSourceName = string.Empty;
+			selectedSourceNames = new string[0];
+		}
+		else
+		{
+			selectedSourceNames = selectedSourceNamesStr.Split(';');
 		}
 
+		GetNevionVideoIPathElement();
 		return new OnArgumentsProcessedOutputArgs();
 	}
 
@@ -86,7 +95,6 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 	public OnInitOutputArgs OnInit(OnInitInputArgs args)
 	{
 		dms = args.DMS;
-		GetNevionVideoIPathElement();
 
 		return new OnInitOutputArgs();
 	}
@@ -96,6 +104,47 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 		dataminerId = -1;
 		elementId = -1;
 
+		if (!string.IsNullOrWhiteSpace(nevionElementId))
+		{
+			GetNevionVideoIPathSpecificElement();
+		}
+		else
+		{
+			GetFirstNevionVideoIPathProductionElement();
+		}
+	}
+
+	private void GetNevionVideoIPathSpecificElement()
+	{
+		var elementIdSplit = nevionElementId.Split('/');
+
+		if (elementIdSplit.Length != 2)
+		{
+			return;
+		}
+
+		var checkDmaId = Convert.ToInt32(elementIdSplit[0]);
+		var checkElementId = Convert.ToInt32(elementIdSplit[1]);
+
+		var infoMessage = new GetElementByIDMessage
+		{
+			DataMinerID = checkDmaId,
+			ElementID = checkElementId,
+		};
+
+		var infoMessageResponse = dms.SendMessage(infoMessage) as ElementInfoEventMessage;
+
+		if (infoMessageResponse == null)
+		{
+			return;
+		}
+
+		dataminerId = checkDmaId;
+		elementId = checkElementId;
+	}
+
+	private void GetFirstNevionVideoIPathProductionElement()
+	{
 		var infoMessage = new GetInfoMessage { Type = InfoType.ElementInfo };
 		var infoMessageResponses = dms.SendMessages(infoMessage);
 		foreach (var response in infoMessageResponses)
@@ -216,7 +265,7 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 
 		for (int i = 0; i < columns[0].ArrayValue.Length; i++)
 		{
-			var sourceRow = new SourceRow(columns, i, selectedSourceName);
+			var sourceRow = new SourceRow(columns, i, selectedSourceNames);
 			if (!sourceRow.IsValid())
 			{
 				continue;
@@ -236,7 +285,7 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 
 public class SourceRow
 {
-	public SourceRow(ParameterValue[] columns, int row, string selectedSourceName)
+	public SourceRow(ParameterValue[] columns, int row, string[] selectedSourceNames)
 	{
 		var nameCell = columns[0].ArrayValue[row];
 		Name = !nameCell.IsEmpty ? nameCell.CellValue.StringValue : String.Empty;
@@ -262,7 +311,7 @@ public class SourceRow
 		var fDescriptorLabelCell = columns[5].ArrayValue[row];
 		FDescriptorLabel = !fDescriptorLabelCell.IsEmpty ? fDescriptorLabelCell.CellValue.StringValue : String.Empty;
 
-		IsSelected = !string.IsNullOrEmpty(selectedSourceName) && DescriptorLabel.Equals(selectedSourceName);
+		IsSelected = selectedSourceNames.Contains(DescriptorLabel);
 	}
 
 	public string Name { get; private set; }

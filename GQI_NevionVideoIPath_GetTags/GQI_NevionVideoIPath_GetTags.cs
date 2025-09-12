@@ -12,6 +12,9 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 	private GQIIntArgument typeArgument = new GQIIntArgument("Type") { IsRequired = true };
 	private Type type;
 
+	private GQIStringArgument elementIdArgument = new GQIStringArgument("NevionElementId") { IsRequired = false };
+	private string nevionElementId;
+
 	private GQIStringArgument profileArgument = new GQIStringArgument("Profile") { IsRequired = false };
 	private string profile;
 
@@ -34,13 +37,16 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new GQIArgument[] { typeArgument, profileArgument };
+		return new GQIArgument[] { typeArgument, elementIdArgument, profileArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
 		type = (Type)args.GetArgumentValue(typeArgument);
+		nevionElementId = Convert.ToString(args.GetArgumentValue(elementIdArgument));
 		profile = Convert.ToString(args.GetArgumentValue(profileArgument));
+
+		GetNevionVideoIPathElement();
 		return new OnArgumentsProcessedOutputArgs();
 	}
 
@@ -65,7 +71,6 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 	public OnInitOutputArgs OnInit(OnInitInputArgs args)
 	{
 		dms = args.DMS;
-		GetNevionVideoIPathElement();
 
 		return new OnInitOutputArgs();
 	}
@@ -75,6 +80,47 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 		dataminerId = -1;
 		elementId = -1;
 
+		if (!string.IsNullOrWhiteSpace(nevionElementId))
+		{
+			GetNevionVideoIPathSpecificElement();
+		}
+		else
+		{
+			GetFirstNevionVideoIPathProductionElement();
+		}
+	}
+
+	private void GetNevionVideoIPathSpecificElement()
+	{
+		var elementIdSplit = nevionElementId.Split('/');
+
+		if (elementIdSplit.Length != 2)
+		{
+			return;
+		}
+
+		var checkDmaId = Convert.ToInt32(elementIdSplit[0]);
+		var checkElementId = Convert.ToInt32(elementIdSplit[1]);
+
+		var infoMessage = new GetElementByIDMessage
+		{
+			DataMinerID = checkDmaId,
+			ElementID = checkElementId,
+		};
+
+		var infoMessageResponse = dms.SendMessage(infoMessage) as ElementInfoEventMessage;
+
+		if (infoMessageResponse == null)
+		{
+			return;
+		}
+
+		dataminerId = checkDmaId;
+		elementId = checkElementId;
+	}
+
+	private void GetFirstNevionVideoIPathProductionElement()
+	{
 		var infoMessage = new GetInfoMessage { Type = InfoType.ElementInfo };
 		var infoMessageResponses = dms.SendMessages(infoMessage);
 		foreach (var response in infoMessageResponses)

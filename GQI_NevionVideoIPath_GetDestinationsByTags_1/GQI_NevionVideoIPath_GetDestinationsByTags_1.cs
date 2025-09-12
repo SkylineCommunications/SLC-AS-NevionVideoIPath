@@ -9,6 +9,9 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 {
 	private GQIDMS dms;
 
+	private GQIStringArgument elementIdArgument = new GQIStringArgument("NevionElementId") { IsRequired = false };
+	private string nevionElementId;
+
 	private GQIStringArgument profileArgument = new GQIStringArgument("Profile") { IsRequired = false };
 	private string profile;
 
@@ -23,7 +26,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		return new GQIColumn[]
 		{
 			new GQIStringColumn("Name"),
-			new GQIStringColumn("Connected Source"),
+			new GQIStringColumn("Connected Sources"),
 			new GQIStringColumn("Tags"),
 			new GQIStringColumn("ID"),
 			new GQIBooleanColumn("Is Connected"),
@@ -32,51 +35,60 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new GQIArgument[] { profileArgument, tagArgument };
+		return new GQIArgument[] { elementIdArgument, profileArgument, tagArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
 		profile = args.GetArgumentValue<string>(profileArgument);
+		nevionElementId = Convert.ToString(args.GetArgumentValue(elementIdArgument));
 		tag = args.GetArgumentValue<string>(tagArgument);
+
+		GetNevionVideoIPathElement();
 		return new OnArgumentsProcessedOutputArgs();
 	}
 
 	public GQIPage GetNextPage(GetNextPageInputArgs args)
 	{
-		if (dataminerId == -1 || elementId == -1)
+		try
 		{
-			return new GQIPage(new GQIRow[0])
+			if (dataminerId == -1 || elementId == -1)
+			{
+				return new GQIPage(new GQIRow[0])
+				{
+					HasNextPage = false,
+				};
+			}
+
+			List<GQIRow> rows;
+			if (!String.IsNullOrEmpty(tag))
+			{
+				rows = GetDestinationByTagRows(tag);
+			}
+			else if (!String.IsNullOrEmpty(profile))
+			{
+				var tagFilter = GetTagsForProfile();
+				rows = GetDestinationByTagRows(tagFilter.ToArray());
+			}
+			else
+			{
+				rows = GetDestinationByTagRows();
+			}
+
+			return new GQIPage(rows.ToArray())
 			{
 				HasNextPage = false,
 			};
 		}
-
-		List<GQIRow> rows;
-		if (!String.IsNullOrEmpty(tag))
+		catch (Exception e)
 		{
-			rows = GetDestinationByTagRows(tag);
+			throw new Exception(e.ToString());
 		}
-		else if (!String.IsNullOrEmpty(profile))
-		{
-			var tagFilter = GetTagsForProfile();
-			rows = GetDestinationByTagRows(tagFilter.ToArray());
-		}
-		else
-		{
-			rows = GetDestinationByTagRows();
-		}
-
-		return new GQIPage(rows.ToArray())
-		{
-			HasNextPage = false,
-		};
 	}
 
 	public OnInitOutputArgs OnInit(OnInitInputArgs args)
 	{
 		dms = args.DMS;
-		GetNevionVideoIPathElement();
 
 		return new OnInitOutputArgs();
 	}
@@ -86,6 +98,47 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		dataminerId = -1;
 		elementId = -1;
 
+		if (!string.IsNullOrWhiteSpace(nevionElementId))
+		{
+			GetNevionVideoIPathSpecificElement();
+		}
+		else
+		{
+			GetFirstNevionVideoIPathProductionElement();
+		}
+	}
+
+	private void GetNevionVideoIPathSpecificElement()
+	{
+		var elementIdSplit = nevionElementId.Split('/');
+
+		if (elementIdSplit.Length != 2)
+		{
+			return;
+		}
+
+		var checkDmaId = Convert.ToInt32(elementIdSplit[0]);
+		var checkElementId = Convert.ToInt32(elementIdSplit[1]);
+
+		var infoMessage = new GetElementByIDMessage
+		{
+			DataMinerID = checkDmaId,
+			ElementID = checkElementId,
+		};
+
+		var infoMessageResponse = dms.SendMessage(infoMessage) as ElementInfoEventMessage;
+
+		if (infoMessageResponse == null)
+		{
+			return;
+		}
+
+		dataminerId = checkDmaId;
+		elementId = checkElementId;
+	}
+
+	private void GetFirstNevionVideoIPathProductionElement()
+	{
 		var infoMessage = new GetInfoMessage { Type = InfoType.ElementInfo };
 		var infoMessageResponses = dms.SendMessages(infoMessage);
 		foreach (var response in infoMessageResponses)
@@ -202,7 +255,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		return columns;
 	}
 
-	private List<GQIRow> ProcessDestinationByTagTable(ParameterValue[] columns, Dictionary<string, string> destinationIdToSourceNameRelations, params string[] tagFilter)
+	private List<GQIRow> ProcessDestinationByTagTable(ParameterValue[] columns, Dictionary<string, HashSet<string>> destinationIdToSourceNameRelations, params string[] tagFilter)
 	{
 		var rows = new List<GQIRow>();
 		for (int i = 0; i < columns[0].ArrayValue.Length; i++)
@@ -224,15 +277,15 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		return rows;
 	}
 
-	private Dictionary<string, string> GetCurrentServicesDestinationIdToSourceNameRelationDictionary()
+	private Dictionary<string, HashSet<string>> GetCurrentServicesDestinationIdToSourceNameRelationDictionary()
 	{
 		var columns = GetCurrentServicesTableColumns();
 		if (!columns.Any())
 		{
-			return new Dictionary<string, string>();
+			return new Dictionary<string, HashSet<string>>();
 		}
 
-		var destinationIdToSourceNameDic = new Dictionary<string, string>();
+		var destinationIdToSourceNameDic = new Dictionary<string, HashSet<string>>();
 
 		for (int i = 0; i < columns[7].ArrayValue.Length; i++)
 		{
@@ -248,10 +301,13 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 				continue;
 			}
 
-			if (!destinationIdToSourceNameDic.ContainsKey(destinationIdCell.CellValue.StringValue))
+			if (!destinationIdToSourceNameDic.TryGetValue(destinationIdCell.CellValue.StringValue, out var sources))
 			{
-				destinationIdToSourceNameDic.Add(destinationIdCell.CellValue.StringValue, sourceNameCell.CellValue.StringValue);
+				sources = new HashSet<string>();
+				destinationIdToSourceNameDic.Add(destinationIdCell.CellValue.StringValue, sources);
 			}
+
+			sources.Add(sourceNameCell.CellValue.StringValue);
 		}
 
 		return destinationIdToSourceNameDic;
@@ -279,7 +335,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 
 public class DestinationByTagRow
 {
-	public DestinationByTagRow(ParameterValue[] columns, int row, Dictionary<string,string> destinationIdToSourceNameRelations)
+	public DestinationByTagRow(ParameterValue[] columns, int row, Dictionary<string, HashSet<string>> destinationIdToSourceNameRelations)
 	{
 		var nameCell = columns[0].ArrayValue[row];
 		Name = !nameCell.IsEmpty ? nameCell.CellValue.StringValue : String.Empty;
@@ -305,14 +361,14 @@ public class DestinationByTagRow
 		var fDescriptorLabelCell = columns[5].ArrayValue[row];
 		FDescriptorLabel = !fDescriptorLabelCell.IsEmpty ? fDescriptorLabelCell.CellValue.StringValue : String.Empty;
 
-		ConnectedSource = destinationIdToSourceNameRelations.TryGetValue(Id, out string sourceName)? sourceName : string.Empty;
+		ConnectedSources = destinationIdToSourceNameRelations.TryGetValue(Id, out HashSet<string> sourceName)? string.Join(";", sourceName) : string.Empty;
 	}
 
 	public string Name { get; private set; }
 
 	public string Id { get; private set; }
 
-	public string ConnectedSource { get; private set; }
+	public string ConnectedSources { get; private set; }
 
 	public string Description { get; private set; }
 
@@ -358,10 +414,10 @@ public class DestinationByTagRow
 			new[]
 			{
 				new GQICell { Value = DescriptorLabel },
-				new GQICell { Value = ConnectedSource.Trim() },
+				new GQICell { Value = ConnectedSources.Trim() },
 				new GQICell { Value = String.Join(",", Tags) },
 				new GQICell { Value = Id },
-				new GQICell { Value = !String.IsNullOrWhiteSpace(ConnectedSource) },
+				new GQICell { Value = !String.IsNullOrWhiteSpace(ConnectedSources) },
 			});
 	}
 }
