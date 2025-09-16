@@ -209,19 +209,6 @@ namespace DisconnectServices_1
 
 		private static void DisconnectDestinations(IEngine engine, List<string> destinationIds)
 		{
-			var nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
-			if (nevionVideoIPathElement == null)
-			{
-				engine.ExitFail("Nevion Video iPath element not found!");
-				return;
-			}
-
-			if (!nevionVideoIPathElement.IsActive)
-			{
-				engine.ExitFail("Nevion Video iPath element not active!");
-				return;
-			}
-
 			var dms = engine.GetDms();
 
 			var nevionVideoIPathDmsElement = dms.GetElement(nevionVideoIPathElement.ElementName);

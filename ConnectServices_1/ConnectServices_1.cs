@@ -244,12 +244,6 @@ namespace ConnectServices_1
 
 		private static void ConnectServices(IEngine engine, string sourceName, List<string> destinationNames, string profile)
 		{
-			if (!nevionVideoIPathElement.IsActive)
-			{
-				engine.ExitFail("Nevion Video iPath element not active!");
-				return;
-			}
-
 			var route = destinationNames.Count > 1 ? "Point-to-Multipoint" : "Point-to-Point";
 			var concatenatedDestinationNames = string.Join(",", destinationNames);
 

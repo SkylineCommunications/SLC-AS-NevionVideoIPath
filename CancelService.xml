@@ -17,6 +17,9 @@
 		<ScriptParameter id="2" type="string" values="">
 			<Description>ServiceIds</Description>
 		</ScriptParameter>
+		<ScriptParameter id="3" type="string" values="">
+			<Description>NevionElementId</Description>
+		</ScriptParameter>
 	</Parameters>
 
 	<Script>

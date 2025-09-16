@@ -207,19 +207,6 @@ namespace CancelService_1
 
 		private static void CancelCurrentServices(IEngine engine, List<string> serviceIds)
 		{
-			var nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
-			if (nevionVideoIPathElement == null)
-			{
-				engine.ExitFail("Nevion Video iPath element not found!");
-				return;
-			}
-
-			if (!nevionVideoIPathElement.IsActive)
-			{
-				engine.ExitFail("Nevion Video iPath element not active!");
-				return;
-			}
-
 			foreach (var serviceId in serviceIds)
 			{
 				nevionVideoIPathElement.SetParameterByPrimaryKey(1515, serviceId, 1);
