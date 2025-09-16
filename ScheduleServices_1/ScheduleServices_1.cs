@@ -76,80 +76,156 @@ namespace ScheduleServices_1
 			{
 				//engine.ShowUI();
 
-				var sourceDescriptorLabelInputParameter = engine.GetScriptParam("SourceName").Value;
-				if (!TryGetInputValue(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
-				{
-					engine.ExitFail("Invalid source!");
-					return;
-				}
-
-				if (sourceNames.Count != 1)
-				{
-					engine.ExitFail("Only 1 source should be selected!");
-					return;
-				}
-
-				var sourceName = sourceNames.FirstOrDefault();
-				if (String.IsNullOrEmpty(sourceName))
-				{
-					engine.ExitFail("Invalid source!");
-					return;
-				}
-
-				var destinationDescriptorLabelInputParameter = engine.GetScriptParam("DestinationNames").Value;
-				if (!TryGetInputValue(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
-				{
-					engine.ExitFail("Invalid destinations!");
-					return;
-				}
-
-				if (destinationNames.Count < 1)
-				{
-					engine.ExitFail("No destinations selected!");
-					return;
-				}
-
-				var profileInputParameter = engine.GetScriptParam("Profile").Value;
-				if (!TryGetInputValue(profileInputParameter, out List<string> profileNames))
-				{
-					engine.ExitFail("Invalid profile!");
-					return;
-				}
-
-				if (profileNames.Count != 1)
-				{
-					engine.ExitFail("Only 1 profile should be selected!");
-					return;
-				}
-
-				var profileName = profileNames.FirstOrDefault();
-				if (String.IsNullOrEmpty(profileName))
-				{
-					engine.ExitFail("Invalid profile!");
-					return;
-				}
-
-				Initialize(engine, sourceName, destinationNames, profileName);
-
-				var controller = new InteractiveController(engine);
-				controller.Run(scheduleDialog);
+				RunSafe(engine);
 			}
 			catch (ScriptAbortException)
 			{
-				// do nothing
+				// Catch normal abort exceptions (engine.ExitFail or engine.ExitSuccess)
+				// throw; // Comment if it should be treated as a normal exit of the script.
+			}
+			catch (ScriptForceAbortException)
+			{
+				// Catch forced abort exceptions, caused via external maintenance messages.
+				throw;
+			}
+			catch (ScriptTimeoutException)
+			{
+				// Catch timeout exceptions for when a script has been running for too long.
+				throw;
+			}
+			catch (InteractiveUserDetachedException)
+			{
+				// Catch a user detaching from the interactive script by closing the window.
+				// Only applicable for interactive scripts, can be removed for non-interactive scripts.
+				throw;
 			}
 			catch (Exception e)
 			{
-				engine.Log($"Schedule failed: {e}");
-				engine.ExitFail("Schedule failed due to unknown exception!");
+				engine.ExitFail("Run|Something went wrong: " + e);
 			}
 		}
 
-		private static void Initialize(IEngine engine, string sourceName, List<string> destinationNames, string profile)
+		/// <summary>
+		/// The script entry point.
+		/// </summary>
+		/// <param name="engine">Link with SLAutomation process.</param>
+		public static void RunSafe(IEngine engine)
 		{
-			scheduleDialog = new ScheduleDialog(engine);
+			bool isInteractive = true;
+
+			var sourceDescriptorLabelInputParameter = engine.GetScriptParam("SourceName").Value;
+			if (!TryGetInputValue(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
+			{
+				GenerateErrorMessageDialog(engine, "Invalid source!", isInteractive);
+				return;
+			}
+
+			if (sourceNames.Count == 0)
+			{
+				GenerateErrorMessageDialog(engine, "Please select a source!", isInteractive);
+				return;
+			}
+
+			if (sourceNames.Count > 1)
+			{
+				GenerateErrorMessageDialog(engine, "Only 1 source should be selected!", isInteractive);
+				return;
+			}
+
+			var sourceName = sourceNames.FirstOrDefault();
+			if (String.IsNullOrEmpty(sourceName))
+			{
+				GenerateErrorMessageDialog(engine, "Invalid source!", isInteractive);
+				return;
+			}
+
+			var destinationDescriptorLabelInputParameter = engine.GetScriptParam("DestinationNames").Value;
+			if (!TryGetInputValue(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
+			{
+				GenerateErrorMessageDialog(engine, "Invalid destinations!", isInteractive);
+				return;
+			}
+
+			if (destinationNames.Count <= 0)
+			{
+				GenerateErrorMessageDialog(engine, "Please select a destination!", isInteractive);
+				return;
+			}
+
+			var profileInputParameter = engine.GetScriptParam("Profile").Value;
+			if (!TryGetInputValue(profileInputParameter, out List<string> profileNames))
+			{
+				GenerateErrorMessageDialog(engine, "Invalid profile!", isInteractive);
+				return;
+			}
+
+			if (profileNames.Count == 0)
+			{
+				GenerateErrorMessageDialog(engine, "Please select a profile!", isInteractive);
+				return;
+			}
+
+			if (profileNames.Count > 1)
+			{
+				GenerateErrorMessageDialog(engine, "Only 1 profile should be selected!", isInteractive);
+				return;
+			}
+
+			var profileName = profileNames.FirstOrDefault();
+			if (String.IsNullOrEmpty(profileName))
+			{
+				GenerateErrorMessageDialog(engine, "Invalid profile!", isInteractive);
+				return;
+			}
+
+			Element nevionVideoIPathElement = GetNevionVideoIPathElement(engine);
+
+			Initialize(engine, nevionVideoIPathElement, sourceName, destinationNames, profileName);
+
+			var controller = new InteractiveController(engine);
+			controller.Run(scheduleDialog);
+		}
+
+		private static Element GetNevionVideoIPathElement(IEngine engine)
+		{
+			TryGetInputValue(engine.GetScriptParam("NevionElementId").Value, out var elementIds);
+			var nevionElementId = elementIds.FirstOrDefault();
+
+			if (!string.IsNullOrWhiteSpace(nevionElementId))
+			{
+				return GetNevionVideoIPathSpecificElement(engine, nevionElementId);
+			}
+			else
+			{
+				return GetFirstNevionVideoIPathProductionElement(engine);
+			}
+		}
+
+		private static Element GetNevionVideoIPathSpecificElement(IEngine engine, string nevionElementId)
+		{
+			var elementIdSplit = nevionElementId.Split('/');
+
+			if (elementIdSplit.Length != 2)
+			{
+				return null;
+			}
+
+			var checkDmaId = Convert.ToInt32(elementIdSplit[0]);
+			var checkElementId = Convert.ToInt32(elementIdSplit[1]);
+
+			return engine.FindElement(checkDmaId, checkElementId);
+		}
+
+		private static Element GetFirstNevionVideoIPathProductionElement(IEngine engine)
+		{
+			return engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
+		}
+
+		private static void Initialize(IEngine engine, Element nevionVideoIPathElement, string sourceName, List<string> destinationNames, string profile)
+		{
+			scheduleDialog = new ScheduleDialog(engine, nevionVideoIPathElement);
 			scheduleDialog.SetInput(sourceName, destinationNames, profile);
-			scheduleDialog.ConnectButton.Pressed += (s, o) => engine.ExitSuccess(String.Empty);
+			scheduleDialog.ConnectButton.Pressed += (s, o) => engine.ExitSuccess(string.Empty);
 		}
 
 		private static bool TryGetInputValue(string input, out List<string> labels)
@@ -165,6 +241,46 @@ namespace ScheduleServices_1
 			catch (Exception)
 			{
 				return false;
+			}
+		}
+
+		private static void GenerateSuccessMessageDialog(IEngine engine, string message, bool isInteractive)
+		{
+			if (isInteractive)
+			{
+				var successMessageDialog = new MessageDialog(engine, message);
+				successMessageDialog.Title = "Schedule Services";
+				successMessageDialog.Interacted += (object sender, EventArgs e) =>
+				{
+					engine.ExitSuccess(message);
+				};
+
+				var controller = new InteractiveController(engine);
+				controller.Run(successMessageDialog);
+			}
+			else
+			{
+				engine.ExitSuccess(message);
+			}
+		}
+
+		private static void GenerateErrorMessageDialog(IEngine engine, string message, bool isInteractive)
+		{
+			if (isInteractive)
+			{
+				var errorMessageDialog = new MessageDialog(engine, message);
+				errorMessageDialog.Title = "Schedule Services";
+				errorMessageDialog.Interacted += (object sender, EventArgs e) =>
+				{
+					engine.ExitSuccess(message);
+				};
+
+				var controller = new InteractiveController(engine);
+				controller.Run(errorMessageDialog);
+			}
+			else
+			{
+				engine.ExitFail(message);
 			}
 		}
 	}

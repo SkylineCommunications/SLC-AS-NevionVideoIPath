@@ -41,22 +41,11 @@
 		private List<string> destinationNames;
 		private string[] primaryKeysCurrentServices = new string[0];
 
-		public ScheduleDialog(IEngine engine) : base(engine)
+		public ScheduleDialog(IEngine engine, Element nevionVideoIPathElement) : base(engine)
 		{
 			Title = "Schedule Services";
 
-			nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
-			if (nevionVideoIPathElement == null)
-			{
-				engine.ExitFail("Nevion Video iPath element not found!");
-				return;
-			}
-
-			if (!nevionVideoIPathElement.IsActive)
-			{
-				engine.ExitFail("Nevion Video iPath element not active!");
-				return;
-			}
+			this.nevionVideoIPathElement = nevionVideoIPathElement;
 
 			primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(1500); // Used to check if new connection entries has been added after the ConnectServices.
 

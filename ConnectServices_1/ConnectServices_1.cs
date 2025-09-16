@@ -53,13 +53,10 @@ namespace ConnectServices_1
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Configuration;
 	using System.Linq;
-	using System.Threading;
 	using Newtonsoft.Json;
 	using Skyline.DataMiner.Automation;
-	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
-	using Skyline.DataMiner.Core.DataMinerSystem.Common;
+	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
 	/// <summary>
 	/// Represents a DataMiner Automation script.
@@ -75,79 +72,174 @@ namespace ConnectServices_1
 		/// <param name="engine">Link with SLAutomation process.</param>
 		public static void Run(IEngine engine)
 		{
-			engine.SetFlag(RunTimeFlags.NoKeyCaching);
-
 			try
 			{
-				var sourceDescriptorLabelInputParameter = engine.GetScriptParam("SourceName").Value;
-				if (!TryGetInputValue(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
-				{
-					engine.ExitFail("Invalid source!");
-					return;
-				}
+				//engine.ShowUI();
 
-				if (sourceNames.Count != 1)
-				{
-					engine.ExitFail("Only 1 source should be selected!");
-					return;
-				}
-
-				var sourceName = sourceNames.FirstOrDefault();
-				if (String.IsNullOrEmpty(sourceName))
-				{
-					engine.ExitFail("Invalid source!");
-					return;
-				}
-
-				var destinationDescriptorLabelInputParameter = engine.GetScriptParam("DestinationNames").Value;
-				if (!TryGetInputValue(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
-				{
-					engine.ExitFail("Invalid destinations!");
-					return;
-				}
-
-				if (destinationNames.Count < 1)
-				{
-					engine.ExitFail("No destinations selected!");
-					return;
-				}
-
-				var profileInputParameter = engine.GetScriptParam("Profile").Value;
-				if (!TryGetInputValue(profileInputParameter, out List<string> profileNames))
-				{
-					engine.ExitFail("Invalid profile!");
-					return;
-				}
-
-				if (profileNames.Count != 1)
-				{
-					engine.ExitFail("Only 1 profile should be selected!");
-					return;
-				}
-
-				var profileName = profileNames.FirstOrDefault();
-				if (String.IsNullOrEmpty(profileName))
-				{
-					engine.ExitFail("Invalid profile!");
-					return;
-				}
-
-				nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
-				if (nevionVideoIPathElement == null)
-				{
-					engine.ExitFail("Nevion Video iPath element not found!");
-					return;
-				}
-
-				primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(1500); // Used to check if new connection entries has been added after the ConnectServices.
-
-				ConnectServices(engine, sourceName, destinationNames, profileName);
-				VerifyConnectService(engine, destinationNames);
+				RunSafe(engine);
+			}
+			catch (ScriptAbortException)
+			{
+				// Catch normal abort exceptions (engine.ExitFail or engine.ExitSuccess)
+				// throw; // Comment if it should be treated as a normal exit of the script.
+			}
+			catch (ScriptForceAbortException)
+			{
+				// Catch forced abort exceptions, caused via external maintenance messages.
+				throw;
+			}
+			catch (ScriptTimeoutException)
+			{
+				// Catch timeout exceptions for when a script has been running for too long.
+				throw;
+			}
+			catch (InteractiveUserDetachedException)
+			{
+				// Catch a user detaching from the interactive script by closing the window.
+				// Only applicable for interactive scripts, can be removed for non-interactive scripts.
+				throw;
 			}
 			catch (Exception e)
 			{
-				engine.Log($"ConnectServices Script|Run|Something went wrong while disconnecting services {e}");
+				engine.ExitFail("Run|Something went wrong: " + e);
 			}
+		}
+
+		/// <summary>
+		/// The script safe entry point.
+		/// </summary>
+		/// <param name="engine">Link with SLAutomation process.</param>
+		public static void RunSafe(IEngine engine)
+		{
+			engine.SetFlag(RunTimeFlags.NoKeyCaching);
+
+			bool isInteractive = true;
+
+			var sourceDescriptorLabelInputParameter = engine.GetScriptParam("SourceName").Value;
+			if (!TryGetInputValue(sourceDescriptorLabelInputParameter, out List<string> sourceNames))
+			{
+				GenerateErrorMessageDialog(engine, "Invalid source!", isInteractive);
+				return;
+			}
+
+			if (sourceNames.Count == 0)
+			{
+				GenerateErrorMessageDialog(engine, "Please select a source!", isInteractive);
+				return;
+			}
+
+			if (sourceNames.Count > 1)
+			{
+				GenerateErrorMessageDialog(engine, "Only 1 source should be selected!", isInteractive);
+				return;
+			}
+
+			var sourceName = sourceNames.FirstOrDefault();
+			if (String.IsNullOrEmpty(sourceName))
+			{
+				GenerateErrorMessageDialog(engine, "Invalid source!", isInteractive);
+				return;
+			}
+
+			var destinationDescriptorLabelInputParameter = engine.GetScriptParam("DestinationNames").Value;
+			if (!TryGetInputValue(destinationDescriptorLabelInputParameter, out List<string> destinationNames))
+			{
+				GenerateErrorMessageDialog(engine, "Invalid destinations!", isInteractive);
+				return;
+			}
+
+			if (destinationNames.Count <= 0)
+			{
+				GenerateErrorMessageDialog(engine, "Please select a destination!", isInteractive);
+				return;
+			}
+
+			var profileInputParameter = engine.GetScriptParam("Profile").Value;
+			if (!TryGetInputValue(profileInputParameter, out List<string> profileNames))
+			{
+				GenerateErrorMessageDialog(engine, "Invalid profile!", isInteractive);
+				return;
+			}
+
+			if (profileNames.Count == 0)
+			{
+				GenerateErrorMessageDialog(engine, "Please select a profile!", isInteractive);
+				return;
+			}
+
+			if (profileNames.Count > 1)
+			{
+				GenerateErrorMessageDialog(engine, "Only 1 profile should be selected!", isInteractive);
+				return;
+			}
+
+			var profileName = profileNames.FirstOrDefault();
+			if (String.IsNullOrEmpty(profileName))
+			{
+				GenerateErrorMessageDialog(engine, "Invalid profile!", isInteractive);
+				return;
+			}
+
+			nevionVideoIPathElement = GetNevionVideoIPathElement(engine);
+			if (nevionVideoIPathElement == null)
+			{
+				GenerateErrorMessageDialog(engine, "Nevion Video iPath element not found!", isInteractive);
+				return;
+			}
+
+			if (!nevionVideoIPathElement.IsActive)
+			{
+				GenerateErrorMessageDialog(engine, "Nevion Video iPath element not active!", isInteractive);
+				return;
+			}
+
+			primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(1500); // Used to check if new connection entries has been added after the ConnectServices.
+
+			ConnectServices(engine, sourceName, destinationNames, profileName);
+
+			if (!VerifyConnectService(engine, destinationNames))
+			{
+				GenerateErrorMessageDialog(engine, "Unable to connect.", isInteractive);
+			}
+			else
+			{
+				GenerateSuccessMessageDialog(engine, "Connected!", isInteractive);
+			}
+		}
+
+		private static Element GetNevionVideoIPathElement(IEngine engine)
+		{
+			TryGetInputValue(engine.GetScriptParam("NevionElementId").Value, out var elementIds);
+			var nevionElementId = elementIds.FirstOrDefault();
+
+			if (!string.IsNullOrWhiteSpace(nevionElementId))
+			{
+				return GetNevionVideoIPathSpecificElement(engine, nevionElementId);
+			}
+			else
+			{
+				return GetFirstNevionVideoIPathProductionElement(engine);
+			}
+		}
+
+		private static Element GetNevionVideoIPathSpecificElement(IEngine engine, string nevionElementId)
+		{
+			var elementIdSplit = nevionElementId.Split('/');
+
+			if (elementIdSplit.Length != 2)
+			{
+				return null;
+			}
+
+			var checkDmaId = Convert.ToInt32(elementIdSplit[0]);
+			var checkElementId = Convert.ToInt32(elementIdSplit[1]);
+
+			return engine.FindElement(checkDmaId, checkElementId);
+		}
+
+		private static Element GetFirstNevionVideoIPathProductionElement(IEngine engine)
+		{
+			return engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
 		}
 
 		private static void ConnectServices(IEngine engine, string sourceName, List<string> destinationNames, string profile)
@@ -181,7 +273,7 @@ namespace ConnectServices_1
 			}
 		}
 
-		private static void VerifyConnectService(IEngine engine, List<string> destinationNames)
+		private static bool VerifyConnectService(IEngine engine, List<string> destinationNames)
 		{
 			int retries = 0;
 			bool allEntriesFound = false;
@@ -195,6 +287,48 @@ namespace ConnectServices_1
 				allEntriesFound = allPrimaryKeys.Length == tableEntryCountIncludingNewEntries;
 
 				retries++;
+			}
+
+			return allEntriesFound;
+		}
+
+		private static void GenerateSuccessMessageDialog(IEngine engine, string message, bool isInteractive)
+		{
+			if (isInteractive)
+			{
+				var successMessageDialog = new MessageDialog(engine, message);
+				successMessageDialog.Title = "Connect Services";
+				successMessageDialog.Interacted += (object sender, EventArgs e) =>
+				{
+					engine.ExitSuccess(message ?? string.Empty);
+				};
+
+				var controller = new InteractiveController(engine);
+				controller.Run(successMessageDialog);
+			}
+			else
+			{
+				engine.ExitSuccess(message ?? string.Empty);
+			}
+		}
+
+		private static void GenerateErrorMessageDialog(IEngine engine, string message, bool isInteractive)
+		{
+			if (isInteractive)
+			{
+				var errorMessageDialog = new MessageDialog(engine, message);
+				errorMessageDialog.Title = "Connect Services";
+				errorMessageDialog.Interacted += (object sender, EventArgs e) =>
+				{
+					engine.ExitSuccess(message ?? string.Empty);
+				};
+
+				var controller = new InteractiveController(engine);
+				controller.Run(errorMessageDialog);
+			}
+			else
+			{
+				engine.ExitFail(message ?? string.Empty);
 			}
 		}
 	}

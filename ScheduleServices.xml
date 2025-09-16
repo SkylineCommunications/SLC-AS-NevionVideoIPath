@@ -23,6 +23,9 @@
 		<ScriptParameter id="4" type="string" values="">
 			<Description>Profile</Description>
 		</ScriptParameter>
+		<ScriptParameter id="5" type="string" values="">
+			<Description>NevionElementId</Description>
+		</ScriptParameter>
 	</Parameters>
 
 	<Script>

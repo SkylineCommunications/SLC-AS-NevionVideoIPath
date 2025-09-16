@@ -56,6 +56,7 @@ namespace CancelService_1
 	using System.Linq;
 	using Newtonsoft.Json;
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
 	/// <summary>
 	/// Represents a DataMiner Automation script.
@@ -73,30 +74,135 @@ namespace CancelService_1
 		{
 			try
 			{
-				var serviceIdParameter = engine.GetScriptParam("ServiceIds").Value;
-				if (!TryGetIdsFromInput(serviceIdParameter, out List<string> serviceIds))
-				{
-					engine.ExitFail("Invalid service!");
-					return;
-				}
+				//engine.ShowUI();
 
-				nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
-				if (nevionVideoIPathElement == null)
-				{
-					engine.ExitFail("Nevion Video iPath element not found!");
-					return;
-				}
-
-				primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(1500); // Used to check if new connection entries has been added after the ConnectServices.
-
-				CancelCurrentServices(engine, serviceIds);
-				VerifyCancelService(engine, serviceIds);
+				RunSafe(engine);
+			}
+			catch (ScriptAbortException)
+			{
+				// Catch normal abort exceptions (engine.ExitFail or engine.ExitSuccess)
+				// throw; // Comment if it should be treated as a normal exit of the script.
+			}
+			catch (ScriptForceAbortException)
+			{
+				// Catch forced abort exceptions, caused via external maintenance messages.
+				throw;
+			}
+			catch (ScriptTimeoutException)
+			{
+				// Catch timeout exceptions for when a script has been running for too long.
+				throw;
+			}
+			catch (InteractiveUserDetachedException)
+			{
+				// Catch a user detaching from the interactive script by closing the window.
+				// Only applicable for interactive scripts, can be removed for non-interactive scripts.
+				throw;
 			}
 			catch (Exception e)
 			{
-				engine.Log($"Cancel failed: {e}");
-				engine.ExitFail("Cancel failed due to unknown exception!");
+				engine.ExitFail("Run|Something went wrong: " + e);
 			}
+		}
+
+		/// <summary>
+		/// The script safe entry point.
+		/// </summary>
+		/// <param name="engine">Link with SLAutomation process.</param>
+		public static void RunSafe(IEngine engine)
+		{
+			engine.SetFlag(RunTimeFlags.NoKeyCaching);
+
+			bool isInteractive = true;
+
+			var serviceIdParameter = engine.GetScriptParam("ServiceIds").Value;
+			if (!TryGetIdsFromInput(serviceIdParameter, out List<string> serviceIds))
+			{
+				GenerateErrorMessageDialog(engine, "Invalid service!", isInteractive);
+				return;
+			}
+
+			if (serviceIds.Count <= 0)
+			{
+				GenerateErrorMessageDialog(engine, "Please select a service!", isInteractive);
+				return;
+			}
+
+			nevionVideoIPathElement = GetNevionVideoIPathElement(engine);
+			if (nevionVideoIPathElement == null)
+			{
+				GenerateErrorMessageDialog(engine, "Nevion Video iPath element not found!", isInteractive);
+				return;
+			}
+
+			if (!nevionVideoIPathElement.IsActive)
+			{
+				GenerateErrorMessageDialog(engine, "Nevion Video iPath element not active!", isInteractive);
+				return;
+			}
+
+			primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(1500); // Used to check if new connection entries has been added after the ConnectServices.
+
+			CancelCurrentServices(engine, serviceIds);
+			if(!VerifyCancelService(engine, serviceIds))
+			{
+				GenerateErrorMessageDialog(engine, "Unable to Cancel.", isInteractive);
+			}
+			else
+			{
+				GenerateSuccessMessageDialog(engine, "Canceled!", isInteractive);
+			}
+		}
+
+		private static Element GetNevionVideoIPathElement(IEngine engine)
+		{
+			TryGetInputValue(engine.GetScriptParam("NevionElementId").Value, out var elementIds);
+			var nevionElementId = elementIds.FirstOrDefault();
+
+			if (!string.IsNullOrWhiteSpace(nevionElementId))
+			{
+				return GetNevionVideoIPathSpecificElement(engine, nevionElementId);
+			}
+			else
+			{
+				return GetFirstNevionVideoIPathProductionElement(engine);
+			}
+		}
+
+		private static bool TryGetInputValue(string input, out List<string> labels)
+		{
+			labels = new List<string>();
+
+			try
+			{
+				labels = JsonConvert.DeserializeObject<List<string>>(input);
+
+				return true;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
+
+		private static Element GetNevionVideoIPathSpecificElement(IEngine engine, string nevionElementId)
+		{
+			var elementIdSplit = nevionElementId.Split('/');
+
+			if (elementIdSplit.Length != 2)
+			{
+				return null;
+			}
+
+			var checkDmaId = Convert.ToInt32(elementIdSplit[0]);
+			var checkElementId = Convert.ToInt32(elementIdSplit[1]);
+
+			return engine.FindElement(checkDmaId, checkElementId);
+		}
+
+		private static Element GetFirstNevionVideoIPathProductionElement(IEngine engine)
+		{
+			return engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
 		}
 
 		private static void CancelCurrentServices(IEngine engine, List<string> serviceIds)
@@ -136,7 +242,7 @@ namespace CancelService_1
 			}
 		}
 
-		private static void VerifyCancelService(IEngine engine, List<string> serviceIds)
+		private static bool VerifyCancelService(IEngine engine, List<string> serviceIds)
 		{
 			int retries = 0;
 			bool allEntriesFound = false;
@@ -150,6 +256,48 @@ namespace CancelService_1
 				allEntriesFound = allPrimaryKeys.Length == tableEntriesExcludingCurrentDestination;
 
 				retries++;
+			}
+
+			return allEntriesFound;
+		}
+
+		private static void GenerateSuccessMessageDialog(IEngine engine, string message, bool isInteractive)
+		{
+			if (isInteractive)
+			{
+				var successMessageDialog = new MessageDialog(engine, message);
+				successMessageDialog.Title = "Cancel Services";
+				successMessageDialog.Interacted += (object sender, EventArgs e) =>
+				{
+					engine.ExitSuccess(message);
+				};
+
+				var controller = new InteractiveController(engine);
+				controller.Run(successMessageDialog);
+			}
+			else
+			{
+				engine.ExitSuccess(message);
+			}
+		}
+
+		private static void GenerateErrorMessageDialog(IEngine engine, string message, bool isInteractive)
+		{
+			if (isInteractive)
+			{
+				var errorMessageDialog = new MessageDialog(engine, message);
+				errorMessageDialog.Title = "Cancel Services";
+				errorMessageDialog.Interacted += (object sender, EventArgs e) =>
+				{
+					engine.ExitSuccess(message);
+				};
+
+				var controller = new InteractiveController(engine);
+				controller.Run(errorMessageDialog);
+			}
+			else
+			{
+				engine.ExitFail(message);
 			}
 		}
 	}
